@@ -33,8 +33,10 @@
 #define MYBLINKRATIO 1
 // For finding sends (also in custom reascript actions, see MyCSurf_Aux_Send)
 #define AUXSTRING "aux---%d"
-// Amount of Faders and Encoders that get updated per cycle (execution of function run)
-#define UPDCYCLE 3
+// Limit MIDI events (excluding buttons and LEDs) to X per sec - transmitting 
+// one midi event takes about 1ms, so 900 (plus 100 buttons/LEDs) makes sense
+// let's make it 800 for safety
+#define MIDISEC 800
 
 
 
@@ -112,9 +114,6 @@ class CSurf_US2400 : public IReaperControlSurface
   unsigned char last_joy_x, last_joy_y, lsb;
   char stick_ctr;
 
-  // for updates
-  char curr_update;
-
   // for myblink
   bool s_myblink;  
   int myblink_ctr;
@@ -125,6 +124,14 @@ class CSurf_US2400 : public IReaperControlSurface
 
   // touched faders 
   unsigned long s_touchstates;
+
+  // caches
+  int cache_faders[25];
+  int cache_enc[24];
+  unsigned long cache_upd_faders;
+  unsigned long cache_upd_enc;
+  char cache_exec;
+  SYSTEMTIME cache_lastexec;
     
   // general states
   int s_ch_offset; // bank up/down
@@ -333,15 +340,10 @@ class CSurf_US2400 : public IReaperControlSurface
     {
       s_touchstates = s_touchstates ^ (1 << ch_id);
 
-      /* Stuff below is not needed as when we're updating faders/encoders in the loop */
-
-      /*
-
       // update once again on untouch (important for resetting faders) - but not empty tracks!
       MediaTrack* istrack = Cnv_ChannelIDToMediaTrack(ch_id);
       if (istrack != NULL) MySetSurface_UpdateFader(ch_id);
 
-      */
     }
   } // OnFaderTouch
 
@@ -1135,9 +1137,6 @@ public:
     last_joy_y = 0x3f;
     stick_ctr = 0;
     
-    // for updates
-    curr_update = 0;
-
     // for myblink
     s_myblink = false;
     myblink_ctr = 0;
@@ -1148,6 +1147,18 @@ public:
   
     // touched faders 
     s_touchstates = 0;
+
+    // cache
+    for (char i = 0; i < 25; i++) 
+    {
+      cache_faders[i] = 0;
+      if (i < 24) cache_enc[i] = 0;
+    }
+  
+    cache_upd_faders = 0;
+    cache_upd_enc = 0;
+    cache_exec = 0;
+    GetSystemTime(&cache_lastexec);
       
     // general states
     s_ch_offset = 0; // bank up/down
@@ -1423,12 +1434,29 @@ public:
         } // if (m_flip), else
       } // if (!rpr_tk || rpr_tk == CSurf_TrackFromID(0, false)), else
       
-      // update
-      MIDIOut(0xb0, ch_id + 0x1f, (value & 0x7f));
-      MIDIOut(0xb0, ch_id, ((value >> 7) & 0x7f));
+      if (value != cache_faders[ch_id])
+      {
+        // new value to cache (gets executed on next run cycle)
+        cache_faders[ch_id] = value;
+
+        // set upd flag 
+        cache_upd_faders = cache_upd_faders | (1 << ch_id);
+
+      }  
 
     } // if (active or master)
   } // MySetSurface_UpdateFader
+
+
+  void ExecuteFaderUpdate(int ch_id)
+  {
+    // send midi
+    MIDIOut(0xb0, ch_id + 0x1f, (cache_faders[ch_id] & 0x7f));
+    MIDIOut(0xb0, ch_id, ((cache_faders[ch_id] >> 7) & 0x7f));
+    
+    // remove update flag
+    cache_upd_faders = cache_upd_faders ^ (1 << ch_id);  
+  } // ExecuteFaderUpdate
 
 
   void MySetSurface_UpdateEncoder(int ch_id)
@@ -1549,9 +1577,27 @@ public:
         if (dot) value += 0x40; // set dot
       }
 
-      MIDIOut(0xb0, ch_id + 0x40, value);
+      if (value != cache_enc[ch_id])
+      {
+        // new value to cache (gets executed on next run cycle)
+        cache_enc[ch_id] = value;
+
+        // set upd flag 
+        cache_upd_enc = cache_upd_enc | (1 << ch_id);
+      }    
+
     } // if exists
   } // MySetSurface_UpdateEncoder
+
+
+  void ExecuteEncoderUpdate(int ch_id)
+  {
+    // send midi
+    MIDIOut(0xb0, ch_id + 0x40, cache_enc[ch_id]);
+    
+    // remove update flag
+    cache_upd_enc = cache_upd_enc ^ (1 << ch_id);
+  } // ExecuteEncoderUpdate
 
 
   void MySetSurface_UpdateTrackElement(char ch_id)
@@ -1781,14 +1827,6 @@ public:
 
   // REAPER INITIATED SURFACE UPDATES
 
-  /* To avoid swamping the US-2400 faders/encoders with MIDI updates (especially
-  in auto read mode), we don't use the volume/pan 'events' below. instead we query 
-  values and update faders/encoders in the central loop (see 'run' function). This 
-  fixes the problem but also slows down response. Maybe just a temprary fix? */
-
-
-  /*
-
   void SetSurfaceVolume(MediaTrack* rpr_tk, double vol)
   { 
     int ch_id = Cnv_MediaTrackToChannelID(rpr_tk);
@@ -1808,12 +1846,15 @@ public:
       else if (ch_id <= 23) MySetSurface_UpdateEncoder(ch_id);
   } // SetSurfacePan
   
-  */
-
 
   void SetTrackListChange()
   {
-    CSurf_ResetAllCachedVolPanStates(); // is this needed?
+    CSurf_ResetAllCachedVolPanStates(); 
+    for (char i = 0; i < 25; i++)
+    {
+      MySetSurface_UpdateFader(i);
+      if (i < 24) MySetSurface_UpdateEncoder(i);
+    }
   } // SetTrackListChange
 
 
@@ -2706,14 +2747,41 @@ public:
       while ((evts=list->EnumItems(&l))) MIDIin(evts);
     }
 
-    // update faders + encoders (X at a time)
-    for (char i = 0; i < UPDCYCLE; i++)
+    
+
+    // determine exlimit based on estimated update frequency
+    SYSTEMTIME now;
+    GetSystemTime(&now);
+    long interval = (now.wSecond - cache_lastexec.wSecond) * 1000 + now.wMilliseconds - cache_lastexec.wMilliseconds;
+    cache_lastexec = now;
+
+    int exlimit = MIDISEC * interval / 1000;
+
+    // execute fader/encoder updates
+    char i = 0;
+    char ex = 0;
+    do 
     {
-      MySetSurface_UpdateFader(curr_update);
-      if (curr_update < 24) MySetSurface_UpdateEncoder(curr_update);
-      curr_update++;
-      if (curr_update > 24) curr_update = 0;
-    }
+      if ((cache_upd_faders & (1 << cache_exec)) > 0) {
+        ExecuteFaderUpdate(cache_exec);
+        ex += 2;
+      }
+      if ((cache_upd_enc & (1 << cache_exec)) > 0) {
+        ExecuteEncoderUpdate(cache_exec);
+        ex++;
+      }
+      
+      // incr / wrap cache_exec
+      cache_exec++;
+      if (cache_exec > 24) cache_exec = 0;
+
+      i++;
+      
+      // repeat loop until exlimit reached or all channels checked four times 
+      // to catch any updates that have arrived while executing (does this make 
+      // sense, i.e. is it even possible? Clearly, I don't know squat about threads!)
+    } while ((i < 100) && (ex < exlimit));
+
 
     // blink
     if (myblink_ctr > MYBLINKINTV)
@@ -2724,13 +2792,8 @@ public:
       if (s_myblink) myblink_ctr = MYBLINKINTV - MYBLINKRATIO;
       else myblink_ctr = 0;
 
-      /* We don't have to do this since as of now we're updating faders/encoders 
-      in run-loop anyway
-
       // update encoders (rec arm)
       for (char enc_id = 0; enc_id < 24; enc_id++) MySetSurface_UpdateEncoder(enc_id);
-
-      */
 
       // Update automation modes
       MySetSurface_UpdateAutoLEDs();
