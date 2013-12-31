@@ -28,7 +28,7 @@ That‘s about it.
 
 * The extensions identify any track, anywhere in your tracklist, that has ‘aux---1’ to ‘aux---6’ in its name as the respective Aux. You can call them anything – as long as ‘aux---X’ is in there somewhere it should work. Also, the search is not case sensitive so you can use ‘AUX’ or ‘Aux’ if you want. It has to be three dashes to avoid confusion with tracknames ending in aux, though. For example, I don’t speak French, but I think some words end on ‘...aux’, so maybe there are tracknames like ‘plateaux 2’ ... well, you can use those and mark aux-busses with three dashes, no space.
 * For the SWS Grouping / Ungrouping actions to work I had to set/save the default flags once (Shift+G opens the Grouping Settings, tweak yours and hit Save)
-* For other functionality refer to the Keymap-PDF (also, you can print that and stick it on your master section).
+* For other functionality refer to the [Keymap](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-400-Reaper-Keymap.gif "Keymap – GIF") (also, you can print that and stick it on your master section).
 * You can throw away the source (it’s the c++ code) if you just want to run the extension. I would prefer it of course, if - after a short test drive - you would identify the flaws, put on your hacker hat, fork the extension and fix them.
 * There is a thread about the extension [here](http://forum.cockos.com/showthread.php?t=132165 "Cockos Reaper Forums").
 
