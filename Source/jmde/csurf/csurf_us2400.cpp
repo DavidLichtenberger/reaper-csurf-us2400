@@ -33,10 +33,10 @@
 #define MYBLINKRATIO 1
 // For finding sends (also in custom reascript actions, see MyCSurf_Aux_Send)
 #define AUXSTRING "aux---%d"
-// Limit MIDI events (excluding buttons and LEDs) to X per sec - transmitting 
-// one midi event takes about 1ms, so 900 (plus 100 buttons/LEDs) makes sense
-// let's make it 800 for safety
-#define MIDISEC 800
+// For Separator Themes (example: without separator: 'Default', with separator: 'Default SEPSTRING')
+#define SEPSTRING "US2400-Separator"
+// Execute only X Faders/Encoders at a time
+#define EXLIMIT 10
 
 
 
@@ -56,8 +56,6 @@
 #define CMD(x) NamedCommandLookup(x)
 
 // Unnamed Commands
-#define CMD_SELALLTKS 40296
-#define CMD_UNSELALLTKS 40297
 #define CMD_SELALLITEMS 40182
 #define CMD_UNSELALLITEMS 40289
 #define CMD_PREVTK 40286
@@ -85,7 +83,6 @@
 
 
 #include "csurf.h"
-
 
 
 // for debug  
@@ -131,7 +128,6 @@ class CSurf_US2400 : public IReaperControlSurface
   unsigned long cache_upd_faders;
   unsigned long cache_upd_enc;
   char cache_exec;
-  SYSTEMTIME cache_lastexec;
     
   // general states
   int s_ch_offset; // bank up/down
@@ -317,7 +313,7 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);    
 
-    if (q_shift) MyCSurf_ToggleSolo(rpr_tk, true);
+    if (q_fkey) MyCSurf_ToggleSolo(rpr_tk, true);
     else MyCSurf_ToggleSolo(rpr_tk, false);
   } // OnTrackSolo
 
@@ -326,7 +322,7 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);    
 
-    if (q_shift) MyCSurf_ToggleMute(rpr_tk, true);
+    if (q_fkey) MyCSurf_ToggleMute(rpr_tk, true);
     else MyCSurf_ToggleMute(rpr_tk, false);
   } // OnTrackMute
 
@@ -900,18 +896,30 @@ class CSurf_US2400 : public IReaperControlSurface
     return rpr_tk;
   } // Cnv_ChannelIDToMediaTrack
 
+
   int Cnv_AuxIDToSendID(int ch_id, char aux)
   {
     char search[256];
     char sendname[256];
     sprintf(search, AUXSTRING, aux);
-    
+
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
     int all_sends = GetTrackNumSends(rpr_tk, 0);
+    // hardware outputs count for GetTrackSendName, too
+    all_sends += GetTrackNumSends(rpr_tk, 1);
 
     for (int s = 0; s < all_sends; s++)
     {
       GetTrackSendName(rpr_tk, s, sendname, 256);
+          
+      // lowercase name - surely there has to be a better way?
+      char c = 0;
+      while ((c < 256) && (sendname[c] != 0))
+      {
+        if ((sendname[c] >= 65) && (sendname[c] <= 90)) sendname[c] += 32;
+        c++;
+      }
+
       if (strstr(sendname, search)) return s;
     }
     
@@ -1092,7 +1100,15 @@ class CSurf_US2400 : public IReaperControlSurface
       for(int sel_tk = 0; sel_tk < saved_sel_len; sel_tk++)
         saved_sel[sel_tk] = GetSelectedTrack(rpr_pro, sel_tk);
 
-      Main_OnCommand(CMD_UNSELALLTKS, 0);
+      // unsel all tks
+      int all_tks = CountTracks(0);
+      MediaTrack* tk;
+  
+      for (int i = 0; i < all_tks; i++)
+      {
+        tk = GetTrack(0, i);
+        SetTrackSelected(tk, false);
+      }
     }
   } // Hlp_SaveSelection
 
@@ -1101,7 +1117,15 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     if (saved_sel != 0)
     {
-      Main_OnCommand(CMD_UNSELALLTKS, 0);
+      // unsel all tks
+      int all_tks = CountTracks(0);
+      MediaTrack* tk;
+  
+      for (int i = 0; i < all_tks; i++)
+      {
+        tk = GetTrack(0, i);
+        SetTrackSelected(tk, false);
+      }
 
       for(int sel_tk = 0; sel_tk < saved_sel_len; sel_tk++)
         SetTrackSelected(saved_sel[sel_tk], true);
@@ -1110,6 +1134,79 @@ class CSurf_US2400 : public IReaperControlSurface
       saved_sel = 0;
     }
   } // Hlp_RestoreSelection
+
+
+  /* See SetTrackListChange()
+
+  bool Hlp_CheckTheme(char layout[256])
+  {
+    HMENU trackmenu, layoutsub, mcpsub;
+    
+    int itemcount, i;
+    MENUITEMINFO iteminfo;
+    char name[256];
+
+    trackmenu = GetContextMenu(0);
+    // navigate track menu, find layout sub menu
+    itemcount = GetMenuItemCount(trackmenu);        
+    for (i = 0; i < itemcount; i++)
+    {
+      iteminfo.cbSize = sizeof(MENUITEMINFO);
+      iteminfo.fMask = MIIM_STRING;
+      iteminfo.cch = 256;
+      iteminfo.dwTypeData = &name[0];
+      GetMenuItemInfo(trackmenu, i, true, &iteminfo);
+    
+      // layoutsub found
+      if (strstr(name, "track layout")) 
+      {
+        // get handle for layoutsub
+        iteminfo.fMask = MIIM_SUBMENU;
+        GetMenuItemInfo(trackmenu, i, true, &iteminfo);
+        layoutsub = iteminfo.hSubMenu;
+      }
+    }
+
+    // get handle for mcpsub
+
+    // UNSOLVABLE: Reaper gives only first entry 'default', 
+    // when the context menu has not been opened before!
+    
+    itemcount = GetMenuItemCount(layoutsub);        
+    for (i = 0; i < itemcount; i++)
+    {
+      iteminfo.fMask = MIIM_STRING;
+      iteminfo.cch = 256;
+      iteminfo.dwTypeData = &name[0];
+      GetMenuItemInfo(layoutsub, i, true, &iteminfo);
+    
+      // mcpsub found
+      if (strstr(name, "Mixer")) 
+      {
+        // get handle for layoutsub
+        iteminfo.fMask = MIIM_SUBMENU;
+        GetMenuItemInfo(layoutsub, i, true, &iteminfo);
+        mcpsub = iteminfo.hSubMenu;
+      }
+    }
+
+    itemcount = GetMenuItemCount(mcpsub);
+    for (i = 0; i < itemcount; i++)
+    {
+      iteminfo.fMask = MIIM_STRING;
+      iteminfo.cch = 256;
+      iteminfo.dwTypeData = &name[0];
+      GetMenuItemInfo(mcpsub, i, true, &iteminfo);
+
+      // search for layout of current fader in menu,
+      // is there a fitting entry with SEPSTRING (e.g. 'US2400-Separator') in the name?
+      if ((strstr(layout, name)) && (strstr(SEPSTRING, name))) return true;
+    }
+
+    return false;
+  }
+
+  */
 
 
 
@@ -1158,7 +1255,6 @@ public:
     cache_upd_faders = 0;
     cache_upd_enc = 0;
     cache_exec = 0;
-    GetSystemTime(&cache_lastexec);
       
     // general states
     s_ch_offset = 0; // bank up/down
@@ -1536,7 +1632,6 @@ public:
          
           } else if (m_aux > 0)
           { // aux -> send level
-
             int send_id = Cnv_AuxIDToSendID(ch_id, m_aux);
             if (send_id != -1)
             {
@@ -1609,7 +1704,7 @@ public:
 
     MySetSurface_UpdateButton(ch_id * 4 + 1, selected, false);
     MySetSurface_UpdateButton(ch_id * 4 + 2, solo, false);
-    MySetSurface_UpdateButton(ch_id * 4 + 2, mute, false);
+    MySetSurface_UpdateButton(ch_id * 4 + 3, mute, false);
   } // MySetSurface_UpdateTrackElement
 
 
@@ -1849,11 +1944,68 @@ public:
 
   void SetTrackListChange()
   {
-    CSurf_ResetAllCachedVolPanStates(); 
-    for (char i = 0; i < 25; i++)
+    CSurf_ResetAllCachedVolPanStates(); // is this needed?
+
+    // insert separators if applicable
+
+    /* THIS IS GETTING JUST TOO HACKY, COME BACK TO THIS LATER
+        See also Hlp_CheckTheme()
+
+    // go through tracks
+    MediaTrack* tk;
+    int all_tks = CountTracks(0);
+    char* chunk;
+    char[256] layout;
+    int vi = 0; // index of visible tracks
+
+    if (int i = 0; i < all_tks; i++)
+    {
+      tk = GetTrack(0, i);
+
+      if (IsTrackVisible(tk, true)) // we need something that works here
+      {
+
+        // get info chunk
+        chunk = new char[1048576];
+        GetSetTrackState(tk, chunk, 1048576);
+
+        // Which layout does the fader have?
+        // The line we're looking for is "LAYOUTS" "" "" - 1st quotes are tcp layout, 2nd mcp
+        // if the line is missing layout is "Default"
+
+        // set separators in steps of 8
+        if (vi % 8 == 0)
+        {
+          // look if there is a corresponding layout with US-2400 Separator
+          if (Hlp_CheckTheme(layout))
+          {
+            // change "LAYOUTS" line to apply separator layout
+            ??? something like this: layout += " " + SEPSTRING
+          }
+        } else 
+        {
+          // change "LAYOUTS" line to remove separator layout
+          ??? something like this: layout -= " " + SEPSTRING
+        }
+        
+        // insert LAYOUTS line into chunk
+        ???
+        // write chunk back
+        GetSetTrackState(tk, chunk, 1048576);
+  
+        // clean up
+        delete chunk;      
+      }
+    }
+
+    */
+
+    // reset faders, encoders, track elements
+    for (int i = 0; i < 25; i++)
     {
       MySetSurface_UpdateFader(i);
-      if (i < 24) MySetSurface_UpdateEncoder(i);
+      MySetSurface_UpdateTrackElement(i);
+      MySetSurface_UpdateEncoder(i);
     }
   } // SetTrackListChange
 
@@ -2058,8 +2210,15 @@ public:
     int sel_tks = CountSelectedTracks(0);
     int all_tks = CountTracks(0);
 
-    if (sel_tks != all_tks) Main_OnCommand(CMD_SELALLTKS, 0);
-    else Main_OnCommand(CMD_UNSELALLTKS, 0);
+    bool sel = false;
+    MediaTrack* tk;
+    if (sel_tks != all_tks) sel = true;
+
+    for (int i = 0; i < all_tks; i++)
+    {
+      tk = GetTrack(0, i);
+      SetTrackSelected(tk, sel);
+    }
   } // MyCSurf_ToggleSelectAllTracks() 
 
 
@@ -2096,18 +2255,6 @@ public:
 
   void MyCSurf_Aux_Send(char sel, bool add)
   {
-    /* AddReceive / RemoveReceivesFrom don't work, triggering custom actions instead 
-
-    char* name;
-    sprintf(name, "AUX %d", sel);
-
-    MediaTrack* aux = Hlp_FindTrackByName(name);
-
-    int sel_tks = CountSelectedTracks(0);
-    for (int tk = 0; tk < sel_tks; tk++)
-      if (add) SNM_AddReceive(GetTrack(0, tk), aux, 1);
-      else SNM_RemoveReceivesFrom(aux, GetTrack(0, tk));
-    */
     if (add)
     { // add aux
       switch (sel)
@@ -2747,17 +2894,7 @@ public:
       while ((evts=list->EnumItems(&l))) MIDIin(evts);
     }
 
-    
-
-    // determine exlimit based on estimated update frequency
-    SYSTEMTIME now;
-    GetSystemTime(&now);
-    long interval = (now.wSecond - cache_lastexec.wSecond) * 1000 + now.wMilliseconds - cache_lastexec.wMilliseconds;
-    cache_lastexec = now;
-
-    int exlimit = MIDISEC * interval / 1000;
-
-    // execute fader/encoder updates
+    // Execute fader/encoder updates
     char i = 0;
     char ex = 0;
     do 
@@ -2777,10 +2914,8 @@ public:
 
       i++;
       
-      // repeat loop until exlimit reached or all channels checked four times 
-      // to catch any updates that have arrived while executing (does this make 
-      // sense, i.e. is it even possible? Clearly, I don't know squat about threads!)
-    } while ((i < 100) && (ex < exlimit));
+      // repeat loop until all channels checked or exlimit reached
+    } while ((i < 25) && (ex < EXLIMIT));
 
 
     // blink

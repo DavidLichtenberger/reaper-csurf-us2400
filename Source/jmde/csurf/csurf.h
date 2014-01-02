@@ -50,6 +50,9 @@ extern bool (*GetTrackSendName)(MediaTrack* track, int send_index, char* buf, in
 extern void (*Main_OnCommand)(int command, int flag);
 extern MediaTrack* (*GetLastTouchedTrack)();
 extern bool (*GetTrackSendUIVolPan)(MediaTrack* track, int send_index, double* volume, double* pan);
+extern HMENU (*GetContextMenu)(int idx);
+extern bool (*GetSetTrackState)(MediaTrack* track, char* str, int maxlen);
+extern bool (*IsTrackVisible)(MediaTrack* track, bool mixer);
 // ADDITIONS FOR US-2400 -- END
 
 /* 

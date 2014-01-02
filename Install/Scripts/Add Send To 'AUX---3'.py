@@ -37,10 +37,12 @@ for t in range(0, trackamount) :
 		# check if send exists
 		exists = False
 		sendamount = RPR_GetTrackNumSends(tr, 0)
+		# count hardware outs too
+		sendamount += RPR_GetTrackNumSends(tr, 1)
 		
 		for s in range(0, sendamount) :
 			
-			sendname = RPR_GetTrackSendName(tr, s, s, 256)[3]
+			sendname = RPR_GetTrackSendName(tr, s, s, 256)[3].lower()
 			if (sendname == auxname) :
 				exists = True
 			
