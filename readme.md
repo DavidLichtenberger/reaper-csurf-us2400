@@ -44,6 +44,6 @@ That‘s about it.
 
     √ *Turns out this is even easier done than said ;-)*
 
-*   It would be cool to be able to assign custom actions to the ‘action buttons’ (like Shift-/FKey-Aux) but as of now I don’t really now how to do it.
+*   It would be cool to be able to assign custom actions to the ‘action buttons’ (like Shift-/FKey-Aux) but as of now I don’t really know how to do it.
 
 *   There is a meter mode (where the encoder rings emulate VU meters) that works when you use the US-2400 as a fake MCU, but I didn’t really try to implement it in this extension ... I must admit, I don’t really see the use – after all it’s only 15 diodes per encoder?
