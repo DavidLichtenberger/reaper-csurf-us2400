@@ -2,7 +2,9 @@
 
 ## Disclaimer
 
-This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers?
+1. This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers? 
+
+2. Although there is a version for 64 bit Windows now, I have no way to test it, so you'll have to do that yourself ...
 
 ## Needs
 
