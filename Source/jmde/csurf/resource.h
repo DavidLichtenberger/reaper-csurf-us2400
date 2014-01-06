@@ -14,6 +14,8 @@
 #define IDC_EDIT2_LBL                   1277
 #define IDC_EDIT2_LBL2                  1278
 
+#define IDC_STATIC -1
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
@@ -24,3 +26,4 @@
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
+

@@ -15,7 +15,12 @@
 // Encoder resolution for pan, range:  -1 > +1
 #define ENCRESPAN 0.01 
 // Encoder resolution for fx param, in divisions of range (e.g. -1 > +1, reso 100 > stepsize 0.02)
-#define ENCRESFX 200
+#define ENCRESFX 300
+#define ENCRESFXCOARSE 20
+#define ENCRESFXTOGGLE 1
+// How long will encoders be considered touch, in run circles (15 Hz -> 3 circles = 200ms)
+#define ENCTCHDLY 6
+
 // Wheel resolution for fast scrub
 #define SCRUBRESFAST 1
 // Wheel resolution for slow scrub
@@ -24,20 +29,26 @@
 #define MOVERESFAST 10
 // Wheel resolution for edit cursor move, slow
 #define MOVERESSLOW 50
+
+/* The stick is just always getting in the way, I'm not sure what to do with it, 
+for now I'll just deactivate it */
+
+/*
+
 // Stick interval (stick data gets only updated every x cycles)
 #define STICKINTV 5
 // Stick - size of dead zone in the middle (128 = totally dead)
 #define STICKDEAD 90
+
+*/
+
 // Blink interval / ratio (1 = appr. 30 Hz / 0.03 s)
 #define MYBLINKINTV 20
 #define MYBLINKRATIO 1
-// For finding sends (also in custom reascript actions, see MyCSurf_Aux_Send)
-#define AUXSTRING "aux---%d"
-// For Separator Themes (example: without separator: 'Default', with separator: 'Default SEPSTRING')
-#define SEPSTRING "US2400-Separator"
 // Execute only X Faders/Encoders at a time
 #define EXLIMIT 10
-
+// For finding sends (also in custom reascript actions, see MyCSurf_Aux_Send)
+#define AUXSTRING "aux---%d"
 
 
 ////// DEBUG //////
@@ -58,13 +69,6 @@
 // Unnamed Commands
 #define CMD_SELALLITEMS 40182
 #define CMD_UNSELALLITEMS 40289
-#define CMD_PREVTK 40286
-#define CMD_NEXTTK 40285
-#define CMD_INSERTTK 40001
-#define CMD_DUPLITK 40062
-#define CMD_RENAMETK 40696
-#define CMD_MCP_HIDECHILDR 40199
-#define CMD_GROUPSETTINGS 40772
 #define CMD_RJUMP 40172     
 #define CMD_FJUMP 40173
 #define CMD_TIMESEL2ITEMS 40290
@@ -79,6 +83,7 @@
 #define CMD_SAVE 40026
 #define CMD_SAVEAS 40022
 #define CMD_SEL2LASTTOUCH 40914
+#define CMD_TKAUTOMODES 40400
 
 
 
@@ -104,12 +109,28 @@ class CSurf_US2400 : public IReaperControlSurface
   WDL_String descspace;
   char configtmp[1024];
 
+  // cmd_ids
+  int cmd_aux_fkey[6];
+  int cmd_aux_shift[6];
+  int cmd_pan_fkey[6];
+  int cmd_pan_shift[6];
+  int cmd_chan_fkey[6];
+  int cmd_chan_shift[6];
+
   // buffer for fader data
   bool waitformsb;
+  unsigned char lsb;
+
+  /* The stick is just always getting in the way, I'm not sure what to do with it, 
+  for now I'll just deactivate it */
+
+  /*
 
   // for joystick
-  unsigned char last_joy_x, last_joy_y, lsb;
+  unsigned char last_joy_x, last_joy_y;
   char stick_ctr;
+
+  */
 
   // for myblink
   bool s_myblink;  
@@ -119,8 +140,9 @@ class CSurf_US2400 : public IReaperControlSurface
   bool s_initdone;
   bool s_exitdone;
 
-  // touched faders 
-  unsigned long s_touchstates;
+  // touchstates 
+  unsigned long s_touch_fdr;
+  int s_touch_enc[24];
 
   // caches
   int cache_faders[25];
@@ -132,7 +154,7 @@ class CSurf_US2400 : public IReaperControlSurface
   // general states
   int s_ch_offset; // bank up/down
   bool s_play, s_rec, s_loop; // play states
-  char s_automode_alltks; // automation modes
+  char s_automode; // automation modes
 
   // modes
   bool m_flip, m_chan, m_pan, m_scrub;
@@ -146,6 +168,7 @@ class CSurf_US2400 : public IReaperControlSurface
   char chan_ch;
   int chan_fx;
   int chan_par_offs;
+  bool chan_fx_env_arm;
 
   // save track sel
   MediaTrack** saved_sel;
@@ -216,7 +239,6 @@ class CSurf_US2400 : public IReaperControlSurface
             // track elements
             if (evt->midi_message[1] < 0x60)
             {
-
               ch_id = evt->midi_message[1] / 4; // floor
 
               char ch_element;
@@ -266,6 +288,11 @@ class CSurf_US2400 : public IReaperControlSurface
       {
         OnFaderTouch(24, btn_state);
 
+        /* The stick is just always getting in the way, I'm not sure what to do with it, 
+        for now I'll just deactivate it */
+
+        /*
+
         // joystick
       } else if (evt->midi_message[0] == 0xbe) 
       {
@@ -298,12 +325,12 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnTrackSel(char ch_id)
   {
-    if (m_chan) MySetSurface_Chan_SelectTrack(ch_id);
+    if (m_chan) MySetSurface_Chan_SelectTrack(ch_id, false);
     else {
       MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
 
-      if (q_fkey) CSurf_OnRecArmChange(rpr_tk, -1);
-      else if (q_shift) MyCSurf_SwitchPhase(rpr_tk);
+      if (q_fkey) MyCSurf_SwitchPhase(rpr_tk);
+      else if (q_shift) CSurf_OnRecArmChange(rpr_tk, -1);
       else CSurf_OnSelectedChange(rpr_tk, -1);
     }
   } // OnTrackSel
@@ -323,6 +350,7 @@ class CSurf_US2400 : public IReaperControlSurface
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);    
 
     if (q_fkey) MyCSurf_ToggleMute(rpr_tk, true);
+    else if (q_shift) MyCSurf_Chan_ToggleAllFXBypass(ch_id);
     else MyCSurf_ToggleMute(rpr_tk, false);
   } // OnTrackMute
 
@@ -331,15 +359,11 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     if (btn_state) 
     {
-      s_touchstates = s_touchstates | (1 << ch_id);
+      s_touch_fdr = s_touch_fdr | (1 << ch_id);
+      if ((q_shift) || (q_fkey)) MySetSurface_UpdateFader(ch_id);
     } else
     {
-      s_touchstates = s_touchstates ^ (1 << ch_id);
-
-      // update once again on untouch (important for resetting faders) - but not empty tracks!
-      MediaTrack* istrack = Cnv_ChannelIDToMediaTrack(ch_id);
-      if (istrack != NULL) MySetSurface_UpdateFader(ch_id);
-
+      s_touch_fdr = s_touch_fdr ^ (1 << ch_id);
     }
   } // OnFaderTouch
 
@@ -375,11 +399,9 @@ class CSurf_US2400 : public IReaperControlSurface
       if (send_id == -1) isactive = false;
     }
   
-
     // get values
     if (ismaster || istrack)
     {
-    
       if (ismaster)
       { // if master -> volume
 
@@ -448,6 +470,8 @@ class CSurf_US2400 : public IReaperControlSurface
         } // if (m_flip), else
       } // if (ismaster), else if (isactive)
     } // if (exists)
+
+    MySetSurface_UpdateFader(ch_id);
   } // OnFaderChange()
 
 
@@ -515,13 +539,31 @@ class CSurf_US2400 : public IReaperControlSurface
         if (m_chan)
         { // chan -> fx_param (para_offset checked above)
 
-          double min, max;
+          double min, max, step; //, fine, coarse;
           d_value = TrackFX_GetParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, &min, &max);
+          
+          /* at the moment TrackFX_GetParameterStepSizes always fails!
+          if (TrackFX_GetParameterStepSizes(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, &step, &fine, &coarse, &toggle)
+          {
+            if (toggle)
+            {
+              if (rel_value > 0) d_value = 1.0;
+              else d_value = 0.0;
+         
+            } else
+            {
+              if (q_fkey) step = fine;
+              else if (q_shift) step = coarse;
+              d_value = Cnv_EncoderToFXParam(d_value, min, max, step, rel_value);
+            }
+          }
+          */
+          // this is the temporary workaround
+          step = (double)ENCRESFX;
+          if (q_fkey) step = (double)ENCRESFXTOGGLE;
+          else if (q_shift) step = (double)ENCRESFXCOARSE;
 
-          if (q_fkey) d_value = min; // MINIMUM
-          else if (q_shift) d_value = max; // MAXIMUM
-          else d_value = Cnv_EncoderToFXParam(d_value, min, max, rel_value);
-
+          d_value = Cnv_EncoderToFXParam(d_value, min, max, step, rel_value);
           MyCSurf_Chan_SetFXParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, d_value);
        
         } else if (m_aux > 0)
@@ -571,6 +613,8 @@ class CSurf_US2400 : public IReaperControlSurface
 
       MySetSurface_UpdateEncoder(ch_id); // because touched track doesn't get updated
 
+      s_touch_enc[ch_id] = ENCTCHDLY;
+
     } // if ( (exists) && (isactive) )
   } // OnEncoderChange
 
@@ -581,7 +625,7 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     if (m_chan) 
     {
-      MySetSurface_Chan_SelectTrack(24);
+      MySetSurface_Chan_SelectTrack(24, false);
     } else
     {
       if (q_fkey) MyCSurf_ToggleSelectAllTracks();
@@ -623,52 +667,71 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnAux(char sel)
   { 
-    if (q_fkey)
+    if (q_fkey) 
     { 
-      if (m_aux > 0) MyCSurf_Aux_Send(sel, true);
-      else
+
+      /* The Emulate Keystroke stuff isn't really needed, 
+      better put some more custom actions here */
+
+      if (m_aux > 0) Main_OnCommand(cmd_aux_fkey[sel-1],0);    // Reascript: Aux-Mode - FKey - X
+      else if (m_chan) Main_OnCommand(cmd_chan_fkey[sel-1],0); // Reascript: Chan-Mode - FKey - X
+      else Main_OnCommand(cmd_pan_fkey[sel-1],0);              // Reascript: Pan-Mode - FKey - X
+
+      /* 
+
+      } else
       {
-        switch(sel)
+        if (sel >= 5)
         {
-          case 1 : MyCSurf_Tks_MoveSelected(-1); break;
-          case 2 : MyCSurf_Tks_MoveSelected(1); break;
-          case 3 : MyCSurf_Tks_DuplicateSelected(); break; 
-          case 4 : MyCSurf_Tks_RenameSelected(); break;
-          case 5 : MyCSurf_EmulateKeyStroke(0x1b); break; // Escape
-          case 6 : MyCSurf_EmulateKeyStroke(0x0d); break; // Enter
+          if (m_chan && (cmd_chan_fkey[sel-1] != -1)) 
+          {
+            Main_OnCommand(cmd_chan_fkey[sel-1],0);
+
+          } else if (cmd_pan_fkey[sel-1] != -1) 
+          {
+            Main_OnCommand(cmd_pan_fkey[sel-1],0);
+
+          } else
+          {
+            // if no actions defined emulate Esc / Enter
+            switch (sel)
+            {
+              case 5: MyCSurf_EmulateKeyStroke(27); break;
+              case 6: MyCSurf_EmulateKeyStroke(13); break;
+            }
+          }
+        } else
+        {
+          if (m_chan) Main_OnCommand(cmd_chan_fkey[sel-1],0);
+          else Main_OnCommand(cmd_pan_fkey[sel-1],0);
         }
       }
+
+      */
+
     } else if (q_shift)
     {
-      if (m_aux > 0) MyCSurf_Aux_Send(sel, false);
-      else
-      {
-        switch(sel)
-        {
-          case 1 : MyCSurf_Tks_WrapUnwrapSelected(); break; 
-          case 2 : MyCSurf_Tks_ToggleShowFolder(); break;
-          case 3 : MyCSurf_Tks_GroupSelected(true); break;
-          case 4 : MyCSurf_Tks_Insert(); break;
-          case 5 : MyCSurf_Tks_DeleteSelected(); break; 
-          case 6 : MyCSurf_Tks_GroupSelected(false); break;
-        }
-      }
+      if (m_aux > 0) Main_OnCommand(cmd_aux_shift[sel-1],0);    // Reascript: Aux-Mode - Shift - X
+      else if (m_chan) Main_OnCommand(cmd_chan_shift[sel-1],0); // Reascript: Chan-Mode - Shift - X
+      else Main_OnCommand(cmd_pan_shift[sel-1],0);              // Reascript: Pan-Mode - Shift - X
+
     } else
     {
       if (m_chan)
       {
-        switch(sel)
+        switch(sel)                                             // Fix: channel strip actions
         {
           case 1 : MySetSurface_Chan_SetFxParamOffset(1); break;
           case 2 : MySetSurface_Chan_SetFxParamOffset(-1); break;
           case 3 : MyCSurf_Chan_ToggleFXBypass(); break;
           case 4 : MyCSurf_Chan_InsertFX(); break;
           case 5 : MyCSurf_Chan_DeleteFX(); break;
-          case 6 : MyCSurf_Chan_ToggleAllFXBypass(); break;
+          case 6 : MyCSurf_Chan_ToggleArmFXEnv(); break;
 
         } 
-      } else MySetSurface_EnterAuxMode(sel);
+      } else MySetSurface_EnterAuxMode(sel);                    // Fix: enter Aux Mode
     }
+
     MySetSurface_UpdateAuxButtons();
   } // OnAux()
 
@@ -765,13 +828,11 @@ class CSurf_US2400 : public IReaperControlSurface
         if (q_fkey) MyCSurf_Chan_MoveFX(dir);
         else if (q_shift)
         {
-          if (dir < 0) MyCSurf_Chan_CloseFX(chan_fx);
-          else MyCSurf_Chan_OpenFX(chan_fx);
-
-        } else
-        {
-          MyCSurf_Chan_SelectFX(chan_fx + dir);
+          if (dir > 0) MyCSurf_Chan_OpenFX(chan_fx);
+          else MyCSurf_Chan_CloseFX(chan_fx);
         }
+        else MyCSurf_Chan_SelectFX(chan_fx + dir);
+
       } else
       {
         if (q_fkey) MyCSurf_MoveTimeSel(dir, 0, false);
@@ -788,7 +849,7 @@ class CSurf_US2400 : public IReaperControlSurface
       if (m_chan) MySetSurface_UpdateButton(btn_id, true, true);
       else MySetSurface_UpdateButton(btn_id, false, false);
     }
-  }
+  } // OnBank
 
 
   void OnIn(bool btn_state)
@@ -838,6 +899,11 @@ class CSurf_US2400 : public IReaperControlSurface
   } // OnJogWheel()
 
 
+  /* The stick is just always getting in the way, I'm not sure what to do with it, 
+  for now I'll just deactivate it */
+
+  /*
+
   void OnJoystick()
   { 
     if ( (q_fkey) || (q_shift) )
@@ -862,7 +928,7 @@ class CSurf_US2400 : public IReaperControlSurface
     }
   } // OnJoystick
 
-
+  */
 
   ////// CONVERSION & HELPERS //////
 
@@ -926,17 +992,21 @@ class CSurf_US2400 : public IReaperControlSurface
     return -1;
   } // Cnv_AuxIDToSendID
 
+
   // VOLUME / SEND LEVELS
 
   double Cnv_FaderToVol(unsigned int value) 
   {
-    //double new_val = ((double) (value + 41) * 1000.0) / 16297.0;
-    double new_val = ((double) value * 1000.0) / 16383.0;
+    // theoretically, the MIDI range is from 0 to 16383,
+    // but the US2400 gets a little rough on the ends, 
+    // an attempt to account for that:
+    double new_val = ((double)(value + 41) * 1000.0) / 16256.0;
 
     if (new_val < 0.0) new_val = 0.0;
     else if (new_val > 1000.0) new_val = 1000.0;
 
-    new_val = DB2VAL(SLIDER2DB(new_val));
+    new_val = SLIDER2DB(new_val);
+    new_val = DB2VAL(new_val);
 
     return(new_val);
   } // Cnv_FaderToVol
@@ -961,12 +1031,18 @@ class CSurf_US2400 : public IReaperControlSurface
 
   int Cnv_VolToFader(double value) 
   {
-    //double new_val = DB2SLIDER( VAL2DB(value) ) * 16297.0 / 1000.0 - 41.0;
-    double new_val = DB2SLIDER( VAL2DB(value) ) * 16383.0 / 1000.0;
+    double new_val = VAL2DB(value);
+    new_val = DB2SLIDER( new_val );
+
+    // theoretically, the MIDI range is from 0 to 16383,
+    // but the US2400 gets a little rough on the ends, 
+    // an attempt to account for that:
+    new_val = new_val * 16256.0 / 1000.0 + 41;
+
     int out;
 
-    if (new_val < 0.0) new_val = 0.0;
-    else if (new_val > 16383.0) new_val = 16383.0;
+    if (new_val < 50.0) new_val = 0.0;
+    else if (new_val > 16250.0) new_val = 16383.0;
 
     out = (int)(new_val + 0.5);
 
@@ -1053,9 +1129,15 @@ class CSurf_US2400 : public IReaperControlSurface
   } // Cnv_FaderToFXParam
 
 
-  double Cnv_EncoderToFXParam(double old_val, double min, double max, signed char rel_val)  
+  double Cnv_EncoderToFXParam(double old_val, double min, double max, double step, signed char rel_val)  
   {
-    double d_rel = (double)rel_val * (max - min) / (double)ENCRESFX;
+    /* should TrackFX_GetParamStepSizes decide to work, we can use this: 
+    double d_rel = (double)rel_val * step;
+    */
+
+    // for now:
+    double d_rel = (double)rel_val * (max - min) / step;
+
     double new_val = old_val + d_rel;
 
     if (new_val < min) new_val = min;
@@ -1086,6 +1168,8 @@ class CSurf_US2400 : public IReaperControlSurface
     return (char)(new_val + 0.5);
   } // Cnv_FXParamToEncoder
 
+
+  // HELPERS
 
   void Hlp_SaveSelection()
   {
@@ -1136,78 +1220,43 @@ class CSurf_US2400 : public IReaperControlSurface
   } // Hlp_RestoreSelection
 
 
-  /* See SetTrackListChange()
-
-  bool Hlp_CheckTheme(char layout[256])
+  void Hlp_GetCustomCmdIds()
   {
-    HMENU trackmenu, layoutsub, mcpsub;
-    
-    int itemcount, i;
-    MENUITEMINFO iteminfo;
-    char name[256];
+    const char* name;
+    char index_string[3];
 
-    trackmenu = GetContextMenu(0);
-    // navigate track menu, find layout sub menu
-    itemcount = GetMenuItemCount(trackmenu);        
-    for (i = 0; i < itemcount; i++)
+    // go through all custom commands and parse names to get cmd ids
+    for (int cmd = 50000; cmd <= 65535; cmd++)
     {
-      iteminfo.cbSize = sizeof(MENUITEMINFO);
-      iteminfo.fMask = MIIM_STRING;
-      iteminfo.cch = 256;
-      iteminfo.dwTypeData = &name[0];
-      GetMenuItemInfo(trackmenu, i, true, &iteminfo);
+      name = kbd_getTextFromCmd(cmd, NULL);
+      int index;
     
-      // layoutsub found
-      if (strstr(name, "track layout")) 
+      if (strstr(name, "US-2400"))
       {
-        // get handle for layoutsub
-        iteminfo.fMask = MIIM_SUBMENU;
-        GetMenuItemInfo(trackmenu, i, true, &iteminfo);
-        layoutsub = iteminfo.hSubMenu;
+        for (int s = 0; s < 6; s++)
+        {
+           sprintf(index_string, "- %d", s+1);
+           if (strstr(name, index_string)) index = s;
+        }
+
+        if (strstr(name, "Aux-Mode"))
+        {
+          if (strstr(name, "FKey")) cmd_aux_fkey[index] = cmd;
+          else if (strstr(name, "Shift")) cmd_aux_shift[index] = cmd;
+        
+        } else if (strstr(name, "Pan-Mode"))
+        {
+          if (strstr(name, "FKey")) cmd_pan_fkey[index] = cmd;
+          else if (strstr(name, "Shift")) cmd_pan_shift[index] = cmd;
+
+        } else if (strstr(name, "Chan-Mode"))
+        {
+          if (strstr(name, "FKey")) cmd_chan_fkey[index] = cmd;
+          else if (strstr(name, "Shift")) cmd_chan_shift[index] = cmd;
+        }
       }
     }
-
-    // get handle for mcpsub
-
-    // UNSOLVABLE: Reaper gives only first entry 'default', 
-    // when the context menu has not been opened before!
-    
-    itemcount = GetMenuItemCount(layoutsub);        
-    for (i = 0; i < itemcount; i++)
-    {
-      iteminfo.fMask = MIIM_STRING;
-      iteminfo.cch = 256;
-      iteminfo.dwTypeData = &name[0];
-      GetMenuItemInfo(layoutsub, i, true, &iteminfo);
-    
-      // mcpsub found
-      if (strstr(name, "Mixer")) 
-      {
-        // get handle for layoutsub
-        iteminfo.fMask = MIIM_SUBMENU;
-        GetMenuItemInfo(layoutsub, i, true, &iteminfo);
-        mcpsub = iteminfo.hSubMenu;
-      }
-    }
-
-    itemcount = GetMenuItemCount(mcpsub);
-    for (i = 0; i < itemcount; i++)
-    {
-      iteminfo.fMask = MIIM_STRING;
-      iteminfo.cch = 256;
-      iteminfo.dwTypeData = &name[0];
-      GetMenuItemInfo(mcpsub, i, true, &iteminfo);
-
-      // search for layout of current fader in menu,
-      // is there a fitting entry with SEPSTRING (e.g. 'US2400-Separator') in the name?
-      if ((strstr(layout, name)) && (strstr(SEPSTRING, name))) return true;
-    }
-
-    return false;
-  }
-
-  */
-
+  } // Hlp_GetCustomCmdIds
 
 
 public:
@@ -1226,14 +1275,32 @@ public:
     m_offset = 0;
     m_size = 0;
 
+    // cmd_ids
+    for (char i = 0; i < 6; i++)
+    {
+      cmd_aux_fkey[i] = -1;
+      cmd_aux_shift[i] = -1;
+      cmd_pan_fkey[i] = -1;
+      cmd_pan_shift[i] = -1;
+      cmd_chan_fkey[i] = -1;
+      cmd_chan_shift[i] = -1;
+    }
+
     // for fader data
     waitformsb = false;
+
+    /* The stick is just always getting in the way, I'm not sure what to do with it, 
+    for now I'll just deactivate it */
+
+    /*
 
     // for joystick;
     last_joy_x = 0x3f;
     last_joy_y = 0x3f;
     stick_ctr = 0;
     
+    */
+
     // for myblink
     s_myblink = false;
     myblink_ctr = 0;
@@ -1242,14 +1309,17 @@ public:
     s_initdone = false;
     s_exitdone = false;
   
-    // touched faders 
-    s_touchstates = 0;
-
-    // cache
+    // touchstates & cache
+    s_touch_fdr = 0;
+  
     for (char i = 0; i < 25; i++) 
     {
       cache_faders[i] = 0;
-      if (i < 24) cache_enc[i] = 0;
+      if (i < 24) 
+      {
+        s_touch_enc[i] = 0;
+        cache_enc[i] = 0;
+      }
     }
   
     cache_upd_faders = 0;
@@ -1261,7 +1331,7 @@ public:
     s_play = false; // playstates
     s_rec = false;
     s_loop = false;
-    s_automode_alltks = 0; // automationmodes
+    s_automode = 1; // automationmodes
 
     // modes
     m_flip = false;
@@ -1278,6 +1348,7 @@ public:
     chan_ch = 0;
     chan_fx = 0;
     chan_par_offs = 0;
+    chan_fx_env_arm = false;
 
     // save selection
     saved_sel = 0;
@@ -1315,10 +1386,11 @@ public:
 
 
 
-  ////// SURFACE UPDATES //////
+  ////// CUSTOM SURFACE UPDATES //////
 
   bool MySetSurface_Init() 
   {
+    Hlp_GetCustomCmdIds();
     CSurf_ResetAllCachedVolPanStates(); 
     TrackList_UpdateAllExternalSurfaces(); 
 
@@ -1337,8 +1409,8 @@ public:
     MyCSurf_ToggleRepeat();
     SetRepeatState(s_loop);
 
-    // Update Auto modes, start with off / trim
-    MyCSurf_Auto_SetMode(0, false);
+    // Set global auto mode to off / trim, CSurf cmds only change track modes
+    SetAutomationMode(0, false);
     MySetSurface_UpdateAutoLEDs();
 
     return true;
@@ -1396,7 +1468,7 @@ public:
       bool on = false;
 
       if ( (btn_id == 3) && (s_play) ) on = true;
-      if ( (btn_id == s_automode_alltks) && (s_myblink) ) on = !on;
+      if ( (s_automode & (1 << btn_id)) && (s_myblink) ) on = !on;
 
       MySetSurface_UpdateButton(0x75 + btn_id, on, false);
     }
@@ -1422,12 +1494,19 @@ public:
       } else if (m_chan) 
       { // chan mode
       
-        // chan: bypass states
-        bool bypass_fx = !(bool)TrackFX_GetEnabled(chan_rpr_tk, chan_fx);
+        // bypass
+        int amount_fx = TrackFX_GetCount(chan_rpr_tk);
+        bool bypass_fx;
+
+        // if fx doesn't exist yet (e.g. insert on first open)
+        if (chan_fx >= amount_fx) bypass_fx = false;
+        else bypass_fx = !(bool)TrackFX_GetEnabled(chan_rpr_tk, chan_fx);
         bool bypass_allfx = !(bool)GetMediaTrackInfo_Value(chan_rpr_tk, "I_FXEN");
 
         if ( (aux_id == 3) && (bypass_fx) && (!q_fkey) && (!q_shift) ) on = true;
-        if ( (aux_id == 6) && (bypass_allfx) && (!q_fkey) && (!q_shift) ) on = true;
+
+        // write fx or tk auto?
+        if ( (aux_id == 6) && (chan_fx_env_arm) && (!q_fkey) && (!q_shift) ) on = true;
       }
 
       if (m_chan) MySetSurface_UpdateButton(0x64 + aux_id, on, true);
@@ -1546,12 +1625,15 @@ public:
 
   void ExecuteFaderUpdate(int ch_id)
   {
-    // send midi
-    MIDIOut(0xb0, ch_id + 0x1f, (cache_faders[ch_id] & 0x7f));
-    MIDIOut(0xb0, ch_id, ((cache_faders[ch_id] >> 7) & 0x7f));
-    
-    // remove update flag
-    cache_upd_faders = cache_upd_faders ^ (1 << ch_id);  
+    if ((s_touch_fdr & (1 << ch_id)) == 0)
+    {
+      // send midi
+      MIDIOut(0xb0, ch_id + 0x1f, (cache_faders[ch_id] & 0x7f));
+      MIDIOut(0xb0, ch_id, ((cache_faders[ch_id] >> 7) & 0x7f));
+      
+      // remove update flag
+      cache_upd_faders = cache_upd_faders ^ (1 << ch_id);  
+    }
   } // ExecuteFaderUpdate
 
 
@@ -1627,6 +1709,7 @@ public:
 
             double min, max;
             d_value = TrackFX_GetParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, &min, &max);
+
             value = Cnv_FXParamToEncoder(min, max, d_value);
             value += 0x20; // bar mode
          
@@ -1697,14 +1780,34 @@ public:
 
   void MySetSurface_UpdateTrackElement(char ch_id)
   {
+    // get info
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
-    bool selected = IsTrackSelected(rpr_tk);
-    bool solo = (bool)GetMediaTrackInfo_Value(rpr_tk, "I_SOLO");
-    bool mute = (bool)GetMediaTrackInfo_Value(rpr_tk, "B_MUTE");
+    
+    // if trreck exists
+    if (rpr_tk)
+    {
+      bool selected = IsTrackSelected(rpr_tk);
+      bool solo = (bool)GetMediaTrackInfo_Value(rpr_tk, "I_SOLO");
+      bool mute = (bool)GetMediaTrackInfo_Value(rpr_tk, "B_MUTE");
+      bool bypass = (bool)GetMediaTrackInfo_Value(rpr_tk, "I_FXEN");
 
-    MySetSurface_UpdateButton(ch_id * 4 + 1, selected, false);
-    MySetSurface_UpdateButton(ch_id * 4 + 2, solo, false);
-    MySetSurface_UpdateButton(ch_id * 4 + 3, mute, false);
+      // blink chan sel
+      selected = ( (m_chan && ch_id == chan_ch && s_myblink) != selected );
+
+      // blink track fx bypass
+      mute = ( (!bypass && s_myblink) != mute );
+
+      MySetSurface_UpdateButton(ch_id * 4 + 1, selected, false);
+      MySetSurface_UpdateButton(ch_id * 4 + 2, solo, false);
+      MySetSurface_UpdateButton(ch_id * 4 + 3, mute, false);
+      
+    } else
+    {
+      // reset buttons
+      MySetSurface_UpdateButton(ch_id * 4 + 1, false, false);
+      MySetSurface_UpdateButton(ch_id * 4 + 2, false, false);
+      MySetSurface_UpdateButton(ch_id * 4 + 3, false, false);
+    }
   } // MySetSurface_UpdateTrackElement
 
 
@@ -1764,9 +1867,9 @@ public:
   } // MySetSurface_Chan_Set_FXParamOffset
 
 
-  void MySetSurface_Chan_SelectTrack(unsigned char ch_id)
+  void MySetSurface_Chan_SelectTrack(unsigned char ch_id, bool force_upd)
   {
-    if (ch_id != chan_ch)
+    if ( (ch_id != chan_ch) || (force_upd) )
     {
       // reset button of old channel
       if (IsTrackSelected(chan_rpr_tk)) MySetSurface_UpdateButton(chan_ch * 4 + 1, true, false);
@@ -1807,9 +1910,12 @@ public:
     if (s_ch_offset > 168) s_ch_offset = 168;
     if (s_ch_offset < 0) s_ch_offset = 0;
 
-    // if correction push in wrong direction keep old
+    // if correction pushes in wrong direction keep old
     if ( (dir > 0) && (old_ch_offset > s_ch_offset) ) s_ch_offset = old_ch_offset;
     if ( (dir < 0) && (old_ch_offset < s_ch_offset) ) s_ch_offset = old_ch_offset;
+
+    // update channel strip
+    if (m_chan) chan_ch = chan_ch + old_ch_offset - s_ch_offset;
 
     // update mixer display
     MediaTrack* leftmost = GetTrack(0, s_ch_offset);
@@ -1821,7 +1927,7 @@ public:
       MySetSurface_UpdateFader(ch_id);
       MySetSurface_UpdateTrackElement(ch_id);
     }
-    //TrackList_UpdateAllExternalSurfaces();
+
     MySetSurface_UpdateBankLEDs();
   } // MySetSurface_ShiftBanks
 
@@ -1830,7 +1936,9 @@ public:
   {
     if (m_pan) MySetSurface_ExitPanMode();
     if (m_aux > 0) MySetSurface_ExitAuxMode();
-    
+   
+    if (!chan_fx_env_arm) MyCSurf_Chan_ToggleArmFXEnv();
+
     m_chan = true;
     // blink Chan Button
     MySetSurface_UpdateButton(0x64, true, true);
@@ -1860,6 +1968,10 @@ public:
     if (IsTrackSelected(chan_rpr_tk)) MySetSurface_UpdateButton(chan_ch * 4 + 1, true, false);
     else MySetSurface_UpdateButton(chan_ch * 4 + 1, false, false);
 
+    // if writing fx envs, stop now
+    if (chan_fx_env_arm) MyCSurf_Chan_ToggleArmFXEnv();
+
+    // close window
     MyCSurf_Chan_CloseFX(chan_fx);
 
     // unblink bank buttons
@@ -1946,60 +2058,6 @@ public:
   {
     CSurf_ResetAllCachedVolPanStates(); // is this needed?
 
-    // insert separators if applicable
-
-    /* THIS IS GETTING JUST TOO HACKY, COME BACK TO THIS LATER
-        See also Hlp_CheckTheme()
-
-    // go through tracks
-    MediaTrack* tk;
-    int all_tks = CountTracks(0);
-    char* chunk;
-    char[256] layout;
-    int vi = 0; // index of visible tracks
-
-    if (int i = 0; i < all_tks; i++)
-    {
-      tk = GetTrack(0, i);
-
-      if (IsTrackVisible(tk, true)) // we need something that works here
-      {
-
-        // get info chunk
-        chunk = new char[1048576];
-        GetSetTrackState(tk, chunk, 1048576);
-
-        // Which layout does the fader have?
-        // The line we're looking for is "LAYOUTS" "" "" - 1st quotes are tcp layout, 2nd mcp
-        // if the line is missing layout is "Default"
-
-        // set separators in steps of 8
-        if (vi % 8 == 0)
-        {
-          // look if there is a corresponding layout with US-2400 Separator
-          if (Hlp_CheckTheme(layout))
-          {
-            // change "LAYOUTS" line to apply separator layout
-            ??? something like this: layout += " " + SEPSTRING
-          }
-        } else 
-        {
-          // change "LAYOUTS" line to remove separator layout
-          ??? something like this: layout -= " " + SEPSTRING
-        }
-        
-        // insert LAYOUTS line into chunk
-        ???
-        // write chunk back
-        GetSetTrackState(tk, chunk, 1048576);
-  
-        // clean up
-        delete chunk;      
-      }
-    }
-
-    */
-
     // reset faders, encoders, track elements
     for (int i = 0; i < 25; i++)
     {
@@ -2028,16 +2086,8 @@ public:
 
     if ( (ch_id >= 0) && (ch_id <= 24) ) 
     {
-      bool blink = false;
-      bool on = false;
-      if (selected) on = true;
-      if ( (m_chan) && (ch_id == chan_ch) ) 
-      { 
-        on = true;
-        blink = true;
-      }
-      MySetSurface_UpdateButton(4 * ch_id + 1, on, blink);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
+      MySetSurface_UpdateButton(4 * ch_id + 1, selected, false);
+      if (selected) Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
     }
   } // SetSurfaceSelected
 
@@ -2069,16 +2119,27 @@ public:
   {
     int ch_id = Cnv_MediaTrackToChannelID(rpr_tk);
 
-    if ( (ch_id >= 0) && (ch_id <= 23) && ((s_touchstates & (1 << ch_id)) > 0) ) return true;
-    else return false;
+    if (isPan == 0)
+    {
+      if ( (ch_id >= 0) && (ch_id <= 24) && ((s_touch_fdr & (1 << ch_id)) > 0) ) return true;
+      else return false;
+
+    } else
+    {
+      if ( (ch_id >= 0) && (ch_id <= 23) && (s_touch_enc[ch_id] > 0) ) return true;
+      else return false;
+    }
+
   } // GetTouchState
 
 
+  /* Seems to work only for global mode override?
+
   void SetAutoMode(int mode)
   {
-    s_automode_alltks = mode; 
-    MySetSurface_UpdateAutoLEDs();
   } // SetAutoMode
+
+  */
 
 
   void SetPlayState(bool play, bool pause, bool rec)
@@ -2251,43 +2312,6 @@ public:
   } // MyCSurf_OnRec
 
 
-  // AUX
-
-  void MyCSurf_Aux_Send(char sel, bool add)
-  {
-    if (add)
-    { // add aux
-      switch (sel)
-      { 
-        case 1 : Main_OnCommand(CMD("_5f42cd59520ef749a178581506725018"), 0); break;
-        case 2 : Main_OnCommand(CMD("_dbc1c827ec5e2140819ca67de25be76c"), 0); break;
-        case 3 : Main_OnCommand(CMD("_277b0ae3c0dfcf4ba9404cd93a6f79fd"), 0); break;
-        case 4 : Main_OnCommand(CMD("_8783a9f3d96ace499c8eee563e763f56"), 0); break;
-        case 5 : Main_OnCommand(CMD("_72770d531b4cdb42833c6bd9978be87d"), 0); break;
-        case 6 : Main_OnCommand(CMD("_d3d039b1a04d654dabc94cc5972d63b7"), 0); break;
-      }
-
-    } else
-    { // remove aux
-      switch (sel)
-      { 
-        case 1 : Main_OnCommand(CMD("_5d5c6ca3ea072c4abec0faa76591d602"), 0); break;
-        case 2 : Main_OnCommand(CMD("_bd4148cf5366364f84574ba3d982fd60"), 0); break;
-        case 3 : Main_OnCommand(CMD("_9fd2e3ff6dc66749a07f07ce5e490ffb"), 0); break;
-        case 4 : Main_OnCommand(CMD("_4fa134fcf3a2224281d0a1b818791fde"), 0); break;
-        case 5 : Main_OnCommand(CMD("_72ebde5464da3242bb7dc58353ab8216"), 0); break;
-        case 6 : Main_OnCommand(CMD("_7c2d815481b8b54bba9f7ce5a6bb4618"), 0); break;
-      }
-    }
-
-    for (char ch = 0; ch < 24; ch++)
-    {
-      if (m_flip) MySetSurface_UpdateFader(ch);
-      MySetSurface_UpdateEncoder(ch);
-    }
-  }
-
-
   // CHANNEL STRIP
 
   void MyCSurf_Chan_SelectFX(int open_fx_id)
@@ -2301,27 +2325,24 @@ public:
   {
     int amount_fx = TrackFX_GetCount(chan_rpr_tk);
 
-    // any fx?
-    if (amount_fx > 0)
-    {
-      if (fx_id >= amount_fx) fx_id = 0;
-      else if (fx_id < 0) fx_id = amount_fx - 1;
+    if (fx_id >= amount_fx) fx_id = 0;
+    else if (fx_id < 0) fx_id = amount_fx - 1;
     
-      chan_fx = fx_id;
-      TrackFX_Show(chan_rpr_tk, chan_fx, 2); // hide floating window
-      TrackFX_Show(chan_rpr_tk, chan_fx, 1); // show chain window
-      TrackFX_SetOpen(chan_rpr_tk, chan_fx, true);
+    chan_fx = fx_id;
+    TrackFX_Show(chan_rpr_tk, chan_fx, 2); // hide floating window
+    TrackFX_Show(chan_rpr_tk, chan_fx, 1); // show chain window
+    TrackFX_SetOpen(chan_rpr_tk, chan_fx, true);
 
-      /* Stuff below is not needed when we update faders/encoders in a loop 
+    MySetSurface_UpdateAuxButtons();
 
-      // update encoders or faders
-      for (char ch_id = 0; ch_id < 23; ch_id++) 
-        if (m_flip) MySetSurface_UpdateFader(ch_id);
-        else MySetSurface_UpdateEncoder(ch_id);
+    /* Stuff below is not needed when we update faders/encoders in a loop 
 
-      */
+    // update encoders or faders
+    for (char ch_id = 0; ch_id < 23; ch_id++) 
+      if (m_flip) MySetSurface_UpdateFader(ch_id);
+      else MySetSurface_UpdateEncoder(ch_id);
 
-    } else MyCSurf_Chan_InsertFX();
+    */
   } // MyCSurf_Chan_OpenFX
   
 
@@ -2351,9 +2372,7 @@ public:
       // if there are fx left open the previous one in chain
       chan_fx--;
       MyCSurf_Chan_OpenFX(chan_fx);
-      
-      // otherwise exit chan mode
-    } else MySetSurface_ExitChanMode();
+    }
   } // MyCSurf_Chan_DeleteFX
 
 
@@ -2369,6 +2388,11 @@ public:
     Main_OnCommand(CMD_FXBROWSER, 0);
 
     Hlp_RestoreSelection();
+
+    // focus coming fx, so interface will be up to date after inserting
+    int amount_fx = TrackFX_GetCount(chan_rpr_tk);
+    chan_fx++;
+    if (chan_fx > amount_fx) chan_fx = amount_fx;
   } // MyCSurf_Chan_InsertFX
 
 
@@ -2397,12 +2421,16 @@ public:
   } // MyCSurf_Chan_MoveFX
 
 
-  void MyCSurf_Chan_ToggleAllFXBypass()
+  void MyCSurf_Chan_ToggleAllFXBypass(int ch_id)
   {
-    bool bypass = (bool)GetMediaTrackInfo_Value(chan_rpr_tk, "I_FXEN");
+    MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
+
+    // get info
+    bool bypass = (bool)GetMediaTrackInfo_Value(rpr_tk, "I_FXEN");
+    
+    // toggle bypass
     bypass = !bypass;
-    CSurf_OnFXChange(chan_rpr_tk, (int)bypass);
-    MySetSurface_UpdateAuxButtons();
+    CSurf_OnFXChange(rpr_tk, (int)bypass);   
   } // MyCSurf_Chan_ToggleAllFXBypass
 
 
@@ -2426,243 +2454,92 @@ public:
   } // MyCSurf_Chan_SetFXParam
 
 
-  // TRACKS
-
-  void MyCSurf_Tks_MoveSelected(char dir)
+  void MyCSurf_Chan_ToggleArmFXEnv()
   {
-    int all_sel = CountSelectedTracks(0);
-
-    if (all_sel > 0)
-    {
-      ReaProject* rpr_pro = EnumProjects(-1, NULL, 0);
-      MediaTrack* insert;
-
-      Main_OnCommand(CMD("_S&M_CUTSNDRCV1"), 0);
-
-      if (dir < 0)
-      {
-        //start at first Track of sel
-        insert = GetSelectedTrack(0, 0);
-        SetOnlyTrackSelected(insert);
-        Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-
-        // go left
-        Main_OnCommand(CMD_PREVTK, 0);
-
-        // if first track reached select master
-        if (GetSelectedTrack(0, 0) == GetTrack(0, 0)) insert = GetMasterTrack(rpr_pro);
-        // otherwise go left again
-        else {
-          Main_OnCommand(CMD_PREVTK, 0);
-          insert = GetSelectedTrack(0, 0);
-        }
-      
-      } else
-      {
-        insert = GetSelectedTrack(0, all_sel);
-        SetOnlyTrackSelected(insert);
-        Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-      }
-
-      // get selection back and cut          
-      Hlp_RestoreSelection();
-
-      SetOnlyTrackSelected(insert);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-      Main_OnCommand(CMD("_S&M_PASTSNDRCV1"), 0);
-    }
-  } // MyCSurf_Tks_MoveSelected
-
-
-  void MyCSurf_Tks_Insert()
-  {
-    int all_sel = CountSelectedTracks(0);
-
-    if (all_sel > 0)
-    {
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-      Main_OnCommand(CMD_INSERTTK, 0);
-    }
-  } // MyCSurf_Tks_Insert
-
-
-  void MyCSurf_Tks_DeleteSelected()
-  {
-    int all_sel = CountSelectedTracks(0);
-      
-    if (all_sel > 0)
-    {
-      ReaProject* rpr_pro = EnumProjects(-1, NULL, 0);
-      MediaTrack* rpr_tk;
-
-      for(int sel_tk = 0; sel_tk < all_sel; sel_tk++)
-      {
-        rpr_tk = GetSelectedTrack(rpr_pro, sel_tk);
-        DeleteTrack(rpr_tk);
-      }
-    }
-  } // MyCSurf_Tks_DeleteSelected
-
-
-  void MyCSurf_Tks_DuplicateSelected()
-  {
-    int all_sel = CountSelectedTracks(0);
-      
-    if (all_sel > 0)
-      Main_OnCommand(CMD_DUPLITK, 0);
-  } // MyCSurf_Tks_DuplicateSelected
-
-
-  void MyCSurf_Tks_RenameSelected()
-  {
-    if (CountSelectedTracks(0) > 0)
-    {
-      Hlp_SaveSelection();
-      SetOnlyTrackSelected(GetSelectedTrack(0,0));
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-      Main_OnCommand(CMD_RENAMETK,0 );
-      Hlp_RestoreSelection();
-    }
-  } // MyCSurf_Tks_RenameSelected
-
-
-  void MyCSurf_Tks_GroupSelected(bool group)
-  {
-    if (group) Main_OnCommand(CMD("_S&M_SET_TRACK_UNUSEDGROUP"), 0);
-    else Main_OnCommand(CMD("_S&M_REMOVE_TR_GRP"), 0);
-  } // MyCSurf_Tks_GroupSelected
-
-
-  void MyCSurf_Tks_WrapUnwrapSelected()
-  {
-    MediaTrack* folder;
-    MediaTrack* track;
-    bool hasfolder = false;
-
-    // save first selected track (for wrap)
-    track = GetSelectedTrack(0, 0);
-    
-    // go through selected until folder
-    int all_sel = CountSelectedTracks(0);
-    for (int tk = 0; tk < all_sel; tk++)
-    {
-      folder = GetSelectedTrack(0, tk);
-      
-      int flags;
-      GetTrackState(folder, &flags);
-      // folder found, end loop
-      if (flags & 1) {
-        hasfolder = true;
-        tk = all_sel;
-      }
-    }
-
-    // buffer and remove selection
     Hlp_SaveSelection();
-    
-    if (hasfolder)
-    { // UNWRAP
+    SetOnlyTrackSelected(Cnv_ChannelIDToMediaTrack(chan_ch));
 
-      SetOnlyTrackSelected(folder);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
+    // arm all envelopes -> toggle fx disarms only them
+    if (chan_fx_env_arm) Main_OnCommand(CMD("_S&M_ARMALLENVS"), 0);
+    // disarm all envelopes -> toggle fx arms only them
+    else Main_OnCommand(CMD("_S&M_DISARMALLENVS"), 0);
+ 
+    // toggle arm fx envelopes
+    Main_OnCommand(CMD("_S&M_TGLARMPLUGENV"), 0);
 
-      // copy routing from folder to children
-      SetOnlyTrackSelected(folder);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
+    chan_fx_env_arm = !chan_fx_env_arm;
 
-      if (CountSelectedTracks(0) > 0)
-      {
-        Main_OnCommand(CMD("_S&M_CUTSNDRCV2"), 0);
-        Main_OnCommand(CMD("_SWS_SELCHILDREN2"), 0); //_SWS_SELCHILDREN  ??
-        Main_OnCommand(CMD("_S&M_PASTSNDRCV2"), 0);
+    Hlp_RestoreSelection();
 
-        SetOnlyTrackSelected(folder);
-        Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-        Main_OnCommand(CMD("_XENAKIOS_SELTRACKTONOTFOLDER"), 0);
-        DeleteTrack(folder);
-      }
-
-      // get selection back
-      Hlp_RestoreSelection();
-      
-    } else 
-    { // WRAP
-
-      // start at first selected track
-      SetOnlyTrackSelected(track);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-
-      // go one to the left
-      Main_OnCommand(CMD_PREVTK, 0);
-      
-      // insert a new track
-      MyCSurf_Tks_Insert();
-      
-      // folder is new track
-      folder = GetSelectedTrack(0, 0);
-
-      // copy routing of first track to master
-      SetOnlyTrackSelected(track);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-      Main_OnCommand(CMD("_S&M_CUTSNDRCV2"), 0);
-
-      SetOnlyTrackSelected(folder);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-      Main_OnCommand(CMD("_S&M_PASTSNDRCV2"), 0);
-
-      // get selection back
-      Hlp_RestoreSelection();
-
-      // all selected tracks
-      int all_sel = CountSelectedTracks(0);
-      for (int tk = 0; tk < all_sel; tk++)
-      {
-        track = GetSelectedTrack(0, tk);
-        Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-
-        // remove routing
-        Main_OnCommand(CMD("_S&M_CUTSNDRCV2"), 0);
-      }
-
-      // add folder to selection
-      SetTrackSelected(folder, true);
-      Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
-      Main_OnCommand(CMD("_SWS_MAKEFOLDER"), 0);
-    }
-  } // MyCSurf_Tks_WrapUnwrapSelected
-
-
-  void MyCSurf_Tks_ToggleShowFolder()
-  {
-    Main_OnCommand(CMD_MCP_HIDECHILDR, 0);   
-  } // MyCSurf_Tks_ToggleShowFolder
+    MySetSurface_UpdateAuxButtons();
+  }
 
 
   // AUTOMATION
 
   void MyCSurf_Auto_SetMode(int mode)
   {
-    // mode: 0 = off / trim, 1 = read, 2 = touch, 3 = write
-    // only_sel: false = all tracks
+    // mode: 0 = off / trim, 1 = read, 2 = touch, 3 = write, 4 = latch
+
+    // exchange touch and latch
+    char set_mode = mode;
+    if (mode == 2) set_mode = 4;
+
     int sel_tks = CountSelectedTracks(0);
     int all_tks = CountTracks(0);
+    MediaTrack* tk;
+
+    // if writing fx automation only select and change mode for current track
+    if (chan_fx_env_arm)
+    {
+      Hlp_SaveSelection();
+      SetOnlyTrackSelected(chan_rpr_tk);
+
+    // if none selected, select and change all
+    } else if (sel_tks == 0)
+    {
+      Hlp_SaveSelection();
+
+      for (int i = 0; i < all_tks; i++)
+      {
+        tk = GetTrack(0, i);
+        SetTrackSelected(tk, true);
+      }
+    }
     
-    bool only_sel = true;
-    if ( (sel_tks == all_tks) || (sel_tks == 0) ) only_sel = false;
-    
-    SetAutomationMode(mode, only_sel);
-  } // MyCSurf_Auto_SetMode
+    // set mode for new selection
+    int set_sel = CountSelectedTracks(0);
+    for (int t = 0; t < set_sel; t++)
+    {
+      tk = GetSelectedTrack(0, t);
+      SetTrackAutomationMode(tk, set_mode);      
+    }
+
+    // restore selection
+    if ((chan_fx_env_arm) || (sel_tks == 0))
+      Hlp_RestoreSelection();
 
 
-  // overloaded with set only_sel for init
-  void MyCSurf_Auto_SetMode(int mode, bool only_sel)
-  {
-    // mode: 0 = off / trim, 1 = read, 2 = touch, 3 = write
-    // only_sel: false = all tracks
-    int sel_tks = CountSelectedTracks(0);
-    int all_tks = CountTracks(0);
-    
-    SetAutomationMode(mode, only_sel);
+    /* update CSurf here - because SetAutoMode() only works for global mode changes? */
+
+    // check all tracks for auto modes
+    int tk_mode;
+    s_automode = 0;
+
+    for (int t = 0; t < all_tks; t++)    
+    {
+      tk = GetTrack(0, t);
+      tk_mode = GetTrackAutomationMode(tk);
+
+      // switch touch and latch
+      if (tk_mode == 4) tk_mode = 2;
+
+      // set flags
+      s_automode = s_automode | (1 << tk_mode);
+    } 
+
+    MySetSurface_UpdateAutoLEDs();
+
   } // MyCSurf_Auto_SetMode
 
 
@@ -2894,11 +2771,18 @@ public:
       while ((evts=list->EnumItems(&l))) MIDIin(evts);
     }
 
+    // countdown enc touch delay
+    for (char i = 0; i < 24; i++)
+    {
+      if (s_touch_enc[i] > 0) s_touch_enc[i]--;
+    }
+
     // Execute fader/encoder updates
     char i = 0;
     char ex = 0;
     do 
     {
+    
       if ((cache_upd_faders & (1 << cache_exec)) > 0) {
         ExecuteFaderUpdate(cache_exec);
         ex += 2;
@@ -2926,9 +2810,21 @@ public:
       // reset counter, on is shorter
       if (s_myblink) myblink_ctr = MYBLINKINTV - MYBLINKRATIO;
       else myblink_ctr = 0;
+      
+      for (char ch = 0; ch < 24; ch++)
+      {
+        // update encoders (rec arm)
+        MySetSurface_UpdateEncoder(ch);
 
-      // update encoders (rec arm)
-      for (char enc_id = 0; enc_id < 24; enc_id++) MySetSurface_UpdateEncoder(enc_id);
+        // update track buttons
+        MySetSurface_UpdateTrackElement(ch);
+
+      }
+
+      // blink Master if anything selected
+      MediaTrack* master = Cnv_ChannelIDToMediaTrack(24);
+      bool on = ( ((CountSelectedTracks(0) > 0) && s_myblink) != IsTrackSelected(master) );
+      MySetSurface_UpdateButton(97, on, false);
 
       // Update automation modes
       MySetSurface_UpdateAutoLEDs();
@@ -2939,6 +2835,11 @@ public:
     }
 
 
+    /* The stick is just always getting in the way, I'm not sure what to do with it, 
+    for now I'll just deactivate it */
+
+    /*
+
     // stick
     if (stick_ctr > STICKINTV)
     {
@@ -2948,6 +2849,8 @@ public:
     {
       stick_ctr++;
     }
+
+    */
 
     // init
     if (!s_initdone) s_initdone = MySetSurface_Init();

@@ -52,10 +52,13 @@ bool (*GetTrackSendName)(MediaTrack* track, int send_index, char* buf, int bufle
 void (*Main_OnCommand)(int command, int flag);
 MediaTrack* (*GetLastTouchedTrack)();
 bool (*GetTrackSendUIVolPan)(MediaTrack* track, int send_index, double* volume, double* pan);
-HMENU (*GetContextMenu)(int idx);
-bool (*GetSetTrackState)(MediaTrack* track, char* str, int maxlen);
-bool (*IsTrackVisible)(MediaTrack* track, bool mixer);
+bool (*TrackFX_GetParameterStepSizes)(MediaTrack* track, int fx, int param, double* step, double* smallstep, double* largestep, bool* istoggle);
+double (*TrackFX_GetParamNormalized)(MediaTrack* track, int fx, int param);
+double (*TrackFX_GetParamEx)(MediaTrack* track, int fx, int param, double* minval, double* maxval, double* midval);
+const char* (*kbd_getTextFromCmd)(DWORD cmd, KbdSectionInfo* section);
 // ADDITIONS FOR US-2400 -- END
+
+
 
 double (*DB2SLIDER)(double x);
 double (*SLIDER2DB)(double y);
@@ -213,7 +216,8 @@ REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(REAPER_PLUGIN_HINSTANCE hI
   IMPAPI(Main_OnCommand)
   IMPAPI(GetLastTouchedTrack)
   IMPAPI(GetTrackSendUIVolPan)
-  
+  IMPAPI(TrackFX_GetParameterStepSizes)
+  IMPAPI(kbd_getTextFromCmd)
 
 
   IMPAPI(DB2SLIDER)
@@ -294,9 +298,7 @@ REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(REAPER_PLUGIN_HINSTANCE hI
   IMPAPI(TrackFX_GetFXName)
   
   IMPAPI(GetTrackGUID)
-  IMPAPI(GetSetTrackState)
-  IMPAPI(IsTrackVisible)
-
+  
   void * (*get_config_var)(const char *name, int *szout); 
   int (*projectconfig_var_getoffs)(const char *name, int *szout);
   IMPAPI(get_config_var);
