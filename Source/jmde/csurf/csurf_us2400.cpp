@@ -86,15 +86,109 @@ for now I'll just deactivate it */
 #define CMD_TKAUTOMODES 40400
 
 
-
 #include "csurf.h"
-
 
 // for debug  
 char debug[64];
 
 class CSurf_US2400;
 static bool g_csurf_mcpmode = true; 
+
+// display
+char* dsp_values[24];
+int dsp_colors[24];
+unsigned long dsp_touch;
+
+
+void Dsp_Paint(HWND hwnd)
+{
+  RECT rect;
+  GetWindowRect(hwnd, &rect);
+  int win_width = rect.right - rect.left;
+  int win_height = rect.bottom - rect.top;
+
+  HDC hdc;
+  PAINTSTRUCT ps;
+  hdc = BeginPaint(hwnd, &ps);
+
+  HBRUSH greybg = CreateSolidBrush(RGB(180, 180, 180));
+  HBRUSH redbg = CreateSolidBrush(RGB(240, 140, 120));
+  HPEN light = CreatePen(PS_SOLID, 1, RGB(220, 220, 220));
+  HPEN mid = CreatePen(PS_SOLID, 1, RGB(180, 180, 180));
+  HPEN dark = CreatePen(PS_SOLID, 1, RGB(140, 140, 140));
+
+  int pad = 5;
+  int box_width = win_width / 26;
+  int sep = box_width;
+  int x = 0;
+  for (char ch = 0; ch < 24; ch++)
+  {
+    // separators
+    if ((ch % 8 == 0) && (ch != 0))
+    {
+      rect.left = x + 1;
+      rect.top = 0;
+      rect.right = x + sep;
+      rect.bottom = win_height;
+
+      FillRect(hdc, &rect, greybg);
+
+      x += sep;
+      SelectObject(hdc, dark);
+      MoveToEx(hdc, x, 0, NULL);
+      LineTo(hdc, x, win_height);
+    }
+
+    // touchstates
+    if ( (dsp_touch & (1 << ch)) > 0 )
+    {
+      rect.left = x;
+      rect.top = 0;
+      rect.right = x + box_width;
+      rect.bottom = pad;
+      FillRect(hdc, &rect, redbg);
+    }
+
+    // text
+    rect.left = x + pad * 2;
+    rect.top = pad;
+    rect.right = x + box_width - (pad * 2);
+    rect.bottom = win_height - pad;
+    DrawText(hdc, dsp_values[ch], -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+
+    // dividers
+    if ((ch + 1) % 2 != 0) SelectObject(hdc, light);
+    else if ((ch + 1) % 4 != 0) SelectObject(hdc, mid);
+    else SelectObject(hdc, dark);
+
+    x += box_width;
+    MoveToEx(hdc, x, 0, NULL);
+    LineTo(hdc, x, win_height);
+  }
+
+  DeleteObject(greybg);
+  DeleteObject(redbg);
+  DeleteObject(light);
+  DeleteObject(mid);
+  DeleteObject(dark);
+  
+  EndPaint(hwnd, &ps);
+}
+
+LRESULT CALLBACK Dsp_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  switch (uMsg)
+  {
+    case WM_PAINT:
+      Dsp_Paint(hwnd);
+      return 0;
+
+    default:
+      return DefWindowProc(hwnd, uMsg, wParam, lParam);
+  }
+}
+
+
 
 class CSurf_US2400 : public IReaperControlSurface
 {
@@ -140,7 +234,7 @@ class CSurf_US2400 : public IReaperControlSurface
   bool s_initdone;
   bool s_exitdone;
 
-  // touchstates 
+  // touchstates
   unsigned long s_touch_fdr;
   int s_touch_enc[24];
 
@@ -179,7 +273,9 @@ class CSurf_US2400 : public IReaperControlSurface
   double s_ts_start;
   double s_ts_end;
 
-
+  // display
+  HWND dsp_hwnd;
+  WNDCLASSEX dsp_class;
 
   //////// MIDI ////////
 
@@ -560,8 +656,8 @@ class CSurf_US2400 : public IReaperControlSurface
           */
           // this is the temporary workaround
           step = (double)ENCRESFX;
-          if (q_fkey) step = (double)ENCRESFXTOGGLE;
-          else if (q_shift) step = (double)ENCRESFXCOARSE;
+          if (q_fkey) step = (double)ENCRESFXCOARSE;
+          else if (q_shift) step = (double)ENCRESFXTOGGLE;
 
           d_value = Cnv_EncoderToFXParam(d_value, min, max, step, rel_value);
           MyCSurf_Chan_SetFXParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, d_value);
@@ -745,11 +841,21 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnFKey(bool btn_state)
   {
+    if (btn_state && q_shift)
+    {
+      if (dsp_hwnd == NULL) Dsp_OpenWindow();
+      else Dsp_CloseWindow();
+    } 
     MySetSurface_ToggleFKey(btn_state);
   } // OnFKey()
 
   void OnShift(bool btn_state)
   {
+    if (btn_state && q_fkey)
+    {
+      if (dsp_hwnd == NULL) Dsp_OpenWindow();
+      else Dsp_CloseWindow();
+    } 
     MySetSurface_ToggleShift(btn_state);
   } // OnShift()
 
@@ -929,6 +1035,70 @@ class CSurf_US2400 : public IReaperControlSurface
   } // OnJoystick
 
   */
+
+  ////// DISPLAY //////
+
+  void Dsp_OpenWindow()
+  {
+    Dsp_Update();
+
+    if (dsp_hwnd == NULL)
+    {
+      
+      RECT scr;
+      SystemParametersInfo(SPI_GETWORKAREA, 0, &scr, 0);
+      int scr_width = scr.right - scr.left;
+      int scr_height = scr.bottom - scr.top;
+      int win_height = 60;
+      
+      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_LAYERED, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, 0, scr_height - win_height, scr_width, win_height, NULL, NULL, g_hInst, NULL);
+    }
+    SetLayeredWindowAttributes(dsp_hwnd, RGB(255, 255, 255), 200, LWA_ALPHA);
+    ShowWindow(dsp_hwnd, SW_SHOW);
+    UpdateWindow(dsp_hwnd);
+  }
+
+
+  void Dsp_CloseWindow()
+  {
+    if (dsp_hwnd != NULL)
+    {
+      DestroyWindow(dsp_hwnd);
+      dsp_hwnd = NULL;
+    }
+  }
+
+
+  void Dsp_Update()
+  {
+    MediaTrack* tk;
+
+    int fx_amount = 0;
+    if (m_chan) fx_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
+
+    for (int ch = 0; ch < 24; ch++)
+    {
+      if (dsp_values[ch] != NULL) delete dsp_values[ch];
+      dsp_values[ch] = new char[64];
+
+      if (m_chan)
+      {
+        if (ch + chan_par_offs < fx_amount) TrackFX_GetParamName(chan_rpr_tk, chan_fx, ch + chan_par_offs, dsp_values[ch], 63);
+        else dsp_values[ch] = "";
+
+      } else
+      {
+        tk = Cnv_ChannelIDToMediaTrack(ch);
+        if (tk != NULL) 
+        {
+          GetSetMediaTrackInfo_String(tk, "P_NAME", dsp_values[ch], false);
+          dsp_values[64] = '\0';
+        } else dsp_values[ch] = "";
+      }
+      Hlp_Alphanumeric(dsp_values[ch]);
+    }
+  }
+
 
   ////// CONVERSION & HELPERS //////
 
@@ -1259,8 +1429,18 @@ class CSurf_US2400 : public IReaperControlSurface
   } // Hlp_GetCustomCmdIds
 
 
-public:
+  void Hlp_Alphanumeric(char* str)
+  {
+    // replace everything other than A-Z, a-z, 0-9 with a space
+    for (int i = 0; i < strlen(str); i++)
+      if ( (str[i] < '0') 
+        || ((str[i] > '9') && (str[i] < 'A')) 
+        || ((str[i] > 'Z') && (str[i] < 'a'))
+        || (str[i] > 'z') ) str[i] = ' ';
+  }
 
+
+public:
 
 
   ////// CONSTRUCTOR / DESTRUCTOR //////
@@ -1274,6 +1454,7 @@ public:
 
     m_offset = 0;
     m_size = 0;
+
 
     // cmd_ids
     for (char i = 0; i < 6; i++)
@@ -1357,6 +1538,24 @@ public:
     // loop all
     s_loop_all = false;
 
+    // Display
+    dsp_hwnd = NULL;
+    dsp_class.cbSize = sizeof(WNDCLASSEX);
+    dsp_class.style = 0;
+    dsp_class.lpfnWndProc = (WNDPROC)Dsp_WindowProc;
+    dsp_class.cbClsExtra = 0;
+    dsp_class.cbWndExtra = 0;
+    dsp_class.hInstance = g_hInst;
+    dsp_class.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    dsp_class.hCursor = LoadCursor(NULL, IDC_ARROW);
+    dsp_class.hbrBackground = CreateSolidBrush(RGB(255, 255, 255));
+    dsp_class.lpszMenuName = NULL;
+    dsp_class.lpszClassName = "dsp";
+    dsp_class.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+    
+    if (!RegisterClassEx(&dsp_class)) DBGS("Register failed\n")
+    
+
     // create midi hardware access
     m_midiin = m_midi_in_dev >= 0 ? CreateMIDIInput(m_midi_in_dev) : NULL;
     m_midiout = m_midi_out_dev >= 0 ? CreateThreadedMIDIOutput( CreateMIDIOutput(m_midi_out_dev, false, NULL) ) : NULL;
@@ -1373,12 +1572,19 @@ public:
 
   ~CSurf_US2400()
   {
+    Dsp_CloseWindow();
+
     s_exitdone = MySetSurface_Exit();
     do
     { Sleep(500);  
     } while (!s_exitdone);
     
     delete saved_sel;
+
+    for (char ch = 0; ch < 24; ch++)
+    {
+      if (dsp_values[ch] != NULL) delete dsp_values[ch];
+    }
 
     delete m_midiout;
     delete m_midiin;
@@ -1412,7 +1618,7 @@ public:
     // Set global auto mode to off / trim, CSurf cmds only change track modes
     SetAutomationMode(0, false);
     MySetSurface_UpdateAutoLEDs();
-
+        
     return true;
   } // MySetSurface_Init
 
@@ -1853,17 +2059,19 @@ public:
 
   void MySetSurface_Chan_SetFxParamOffset(char dir)
   {
-    chan_par_offs += 24 * dir;
+    chan_par_offs -= 24 * dir;
     if (chan_par_offs < 0) chan_par_offs = 0;
 
     // check parameter count
     int amount_paras = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
-    if (amount_paras <= chan_par_offs) chan_par_offs -= 24;
+    if (chan_par_offs >= amount_paras) chan_par_offs -= 24;
     
     // update encoders or faders
     for (char ch_id = 0; ch_id < 23; ch_id++) 
       if (m_flip) MySetSurface_UpdateFader(ch_id);
       else MySetSurface_UpdateEncoder(ch_id);
+
+    if (dsp_hwnd != NULL) Dsp_Update();
   } // MySetSurface_Chan_Set_FXParamOffset
 
 
@@ -1887,6 +2095,8 @@ public:
 
       // open fx              
       MyCSurf_Chan_OpenFX(chan_fx);
+
+      if (dsp_hwnd != NULL) Dsp_Update();
 
     } else MySetSurface_ExitChanMode();
   } // MySetSurface_Chan_SelectTrack
@@ -1929,6 +2139,8 @@ public:
     }
 
     MySetSurface_UpdateBankLEDs();
+
+    if (dsp_hwnd != NULL) Dsp_Update();
   } // MySetSurface_ShiftBanks
 
 
@@ -1956,6 +2168,8 @@ public:
     // blink banks
     MySetSurface_UpdateButton(0x70, true, true);
     MySetSurface_UpdateButton(0x71, true, true);
+
+    if (dsp_hwnd != NULL) Dsp_Update();
   } // MySetSurface_EnterChanMode
 
 
@@ -1979,6 +2193,8 @@ public:
     MySetSurface_UpdateButton(0x71, false, false);
 
     MySetSurface_EnterPanMode();
+
+    if (dsp_hwnd != NULL) Dsp_Update();
   } // MySetSurface_ExitChanMode
 
 
@@ -2065,6 +2281,8 @@ public:
       MySetSurface_UpdateTrackElement(i);
       MySetSurface_UpdateEncoder(i);
     }
+
+    if (dsp_hwnd != NULL) Dsp_Update();
   } // SetTrackListChange
 
 
@@ -2334,6 +2552,8 @@ public:
     TrackFX_SetOpen(chan_rpr_tk, chan_fx, true);
 
     MySetSurface_UpdateAuxButtons();
+
+    if (dsp_hwnd != NULL) Dsp_Update();
 
     /* Stuff below is not needed when we update faders/encoders in a loop 
 
@@ -2851,6 +3071,18 @@ public:
     }
 
     */
+
+    // update Display
+    if (dsp_hwnd != NULL) 
+    {
+      dsp_touch = 0;
+      for (char ch = 0; ch < 24; ch++)
+        if (s_touch_enc[ch] > 0) dsp_touch = dsp_touch | (1 << ch);
+      dsp_touch = dsp_touch | s_touch_fdr;
+
+      InvalidateRect(dsp_hwnd, NULL, true);
+      UpdateWindow(dsp_hwnd);
+    }
 
     // init
     if (!s_initdone) s_initdone = MySetSurface_Init();
