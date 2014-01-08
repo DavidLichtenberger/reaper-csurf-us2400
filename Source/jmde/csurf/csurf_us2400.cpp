@@ -16,7 +16,7 @@
 #define ENCRESPAN 0.01 
 // Encoder resolution for fx param, in divisions of range (e.g. -1 > +1, reso 100 > stepsize 0.02)
 #define ENCRESFX 300
-#define ENCRESFXCOARSE 20
+#define ENCRESFXFINE 900
 #define ENCRESFXTOGGLE 1
 // How long will encoders be considered touch, in run circles (15 Hz -> 3 circles = 200ms)
 #define ENCTCHDLY 6
@@ -656,7 +656,7 @@ class CSurf_US2400 : public IReaperControlSurface
           */
           // this is the temporary workaround
           step = (double)ENCRESFX;
-          if (q_fkey) step = (double)ENCRESFXCOARSE;
+          if (q_fkey) step = (double)ENCRESFXFINE;
           else if (q_shift) step = (double)ENCRESFXTOGGLE;
 
           d_value = Cnv_EncoderToFXParam(d_value, min, max, step, rel_value);
@@ -1051,9 +1051,8 @@ class CSurf_US2400 : public IReaperControlSurface
       int scr_height = scr.bottom - scr.top;
       int win_height = 60;
       
-      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_LAYERED, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, 0, scr_height - win_height, scr_width, win_height, NULL, NULL, g_hInst, NULL);
+      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, 0, scr_height - win_height, scr_width, win_height, NULL, NULL, g_hInst, NULL);
     }
-    SetLayeredWindowAttributes(dsp_hwnd, RGB(255, 255, 255), 200, LWA_ALPHA);
     ShowWindow(dsp_hwnd, SW_SHOW);
     UpdateWindow(dsp_hwnd);
   }
@@ -2550,6 +2549,9 @@ public:
     TrackFX_Show(chan_rpr_tk, chan_fx, 2); // hide floating window
     TrackFX_Show(chan_rpr_tk, chan_fx, 1); // show chain window
     TrackFX_SetOpen(chan_rpr_tk, chan_fx, true);
+
+    // reset param offset
+    chan_par_offs = 0;
 
     MySetSurface_UpdateAuxButtons();
 

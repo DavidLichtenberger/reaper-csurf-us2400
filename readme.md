@@ -54,8 +54,8 @@ Top to bottom, left to right:
 
 * **Default:** FX parameter
 * **Flip:** Volume
-* **F-Key:** FX parameter: coarse (for switches)
-* **Shift:** FX parameter: toggle – *those last two are just a workaround until I get the function to work that delivers stepsizes*
+* **F-Key:** FX parameter: fine 
+* **Shift:** FX parameter: toggle – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you'll have to flip and use faders, sorry.*
 
 ### Faders:
 
