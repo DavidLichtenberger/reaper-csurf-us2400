@@ -29,6 +29,8 @@ That‘s about it.
 
 ## Function List
 
+**New:** Hitting F-Key and Shift together opens a resizable scribble strip window, showing track names / FX parameter names dynamically correlated with fader / encoder row (column?) – it even indicates their touch states. It's not better than the missing display on the US-2400 but almost.
+
 Top to bottom, left to right:
 
 ### Rotary Encoders:
