@@ -53,7 +53,7 @@ extern bool (*GetTrackSendUIVolPan)(MediaTrack* track, int send_index, double* v
 extern bool (*TrackFX_GetParameterStepSizes)(MediaTrack* track, int fx, int param, double* step, double* smallstep, double* largestep, bool* istoggle);
 extern const char* (*kbd_getTextFromCmd)(DWORD cmd, KbdSectionInfo* section);
 extern bool (*GetSetMediaTrackInfo_String)(MediaTrack* tr, const char* parmname, char* string, bool setnewvalue);
-extern int (*GetTrackColor)(MediaTrack* track);
+extern const char* (*GetResourcePath)();
 // ADDITIONS FOR US-2400 -- END
 
 /* 

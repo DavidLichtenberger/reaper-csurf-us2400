@@ -16,7 +16,7 @@
 #define ENCRESPAN 0.01 
 // Encoder resolution for fx param, in divisions of range (e.g. -1 > +1, reso 100 > stepsize 0.02)
 #define ENCRESFX 300
-#define ENCRESFXFINE 900
+#define ENCRESFXFINE 3000
 #define ENCRESFXTOGGLE 1
 // How long will encoders be considered touch, in run circles (15 Hz -> 3 circles = 200ms)
 #define ENCTCHDLY 6
@@ -29,6 +29,15 @@
 #define MOVERESFAST 10
 // Wheel resolution for edit cursor move, slow
 #define MOVERESSLOW 50
+// Blink interval / ratio (1 = appr. 30 Hz / 0.03 s)
+#define MYBLINKINTV 20
+#define MYBLINKRATIO 1
+// Execute only X Faders/Encoders at a time
+#define EXLIMIT 10
+// For finding sends (also in custom reascript actions, see MyCSurf_Aux_Send)
+#define AUXSTRING "aux---%d"
+// Filename of ini file (in reaper ressources dir)
+#define INIFILE "csurf_us2400.ini"
 
 /* The stick is just always getting in the way, I'm not sure what to do with it, 
 for now I'll just deactivate it */
@@ -41,14 +50,6 @@ for now I'll just deactivate it */
 #define STICKDEAD 90
 
 */
-
-// Blink interval / ratio (1 = appr. 30 Hz / 0.03 s)
-#define MYBLINKINTV 20
-#define MYBLINKRATIO 1
-// Execute only X Faders/Encoders at a time
-#define EXLIMIT 10
-// For finding sends (also in custom reascript actions, see MyCSurf_Aux_Send)
-#define AUXSTRING "aux---%d"
 
 
 ////// DEBUG //////
@@ -85,7 +86,6 @@ for now I'll just deactivate it */
 #define CMD_SEL2LASTTOUCH 40914
 #define CMD_TKAUTOMODES 40400
 
-
 #include "csurf.h"
 
 // for debug  
@@ -95,9 +95,16 @@ class CSurf_US2400;
 static bool g_csurf_mcpmode = true; 
 
 // display
+bool dsp_repaint = false;
+int dsp_width = -1;
+int dsp_height = -1;
+int dsp_x = -1;
+int dsp_y = -1;
+
 char* dsp_values[24];
 int dsp_colors[24];
-unsigned long dsp_touch;
+unsigned long dsp_touch = 0;
+unsigned long dsp_touch_prev = 0;
 
 
 void Dsp_Paint(HWND hwnd)
@@ -175,25 +182,43 @@ void Dsp_Paint(HWND hwnd)
   EndPaint(hwnd, &ps);
 }
 
+void Dsp_StoreWinCoords(HWND hwnd)
+{
+  RECT rect;
+  GetWindowRect(hwnd, &rect);
+  dsp_x = rect.left;
+  dsp_y = rect.top;
+  dsp_width = rect.right - rect.left;
+  dsp_height = rect.bottom - rect.top;
+}
+
+
 LRESULT CALLBACK Dsp_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
   switch (uMsg)
   {
     case WM_PAINT:
       Dsp_Paint(hwnd);
-      return 0;
+      break;
 
-    default:
-      return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    case WM_SIZE:
+      dsp_repaint = true;
+      Dsp_StoreWinCoords(hwnd);
+      break;
+
+    case WM_MOVE:
+      dsp_repaint = true;
+      Dsp_StoreWinCoords(hwnd);
+      break;
   }
+
+  return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 
 
 class CSurf_US2400 : public IReaperControlSurface
 {
-  ////// GLOBAL VARS //////
-
   int m_midi_in_dev,m_midi_out_dev;
   int m_offset, m_size;
   midi_Output *m_midiout;
@@ -202,6 +227,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
   WDL_String descspace;
   char configtmp[1024];
+
 
   // cmd_ids
   int cmd_aux_fkey[6];
@@ -276,6 +302,11 @@ class CSurf_US2400 : public IReaperControlSurface
   // display
   HWND dsp_hwnd;
   WNDCLASSEX dsp_class;
+
+  // inifile
+  WDL_String ini_path;
+  HANDLE ini_file;
+
 
   //////// MIDI ////////
 
@@ -1044,14 +1075,17 @@ class CSurf_US2400 : public IReaperControlSurface
 
     if (dsp_hwnd == NULL)
     {
-      
-      RECT scr;
-      SystemParametersInfo(SPI_GETWORKAREA, 0, &scr, 0);
-      int scr_width = scr.right - scr.left;
-      int scr_height = scr.bottom - scr.top;
-      int win_height = 60;
-      
-      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, 0, scr_height - win_height, scr_width, win_height, NULL, NULL, g_hInst, NULL);
+      if (dsp_width == -1 || dsp_height == -1)
+      {
+        RECT scr;
+        SystemParametersInfo(SPI_GETWORKAREA, 0, &scr, 0);
+        dsp_width = scr.right - scr.left;
+        dsp_height = 60;
+        dsp_x = 0;
+        dsp_y = scr.bottom - dsp_height;
+      }
+             
+      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, dsp_x, dsp_y, dsp_width, dsp_height, NULL, NULL, g_hInst, NULL);
     }
     ShowWindow(dsp_hwnd, SW_SHOW);
     UpdateWindow(dsp_hwnd);
@@ -1098,6 +1132,41 @@ class CSurf_US2400 : public IReaperControlSurface
     }
   }
 
+
+  void Dsp_GetWinCoordsIni()
+  {
+    ini_file = CreateFile(ini_path.Get(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    
+    if (ini_file != INVALID_HANDLE_VALUE) 
+    {
+      DWORD read;
+
+      ReadFile(ini_file, &dsp_x, sizeof(dsp_x), &read, NULL);
+      ReadFile(ini_file, &dsp_y, sizeof(dsp_y), &read, NULL);
+      ReadFile(ini_file, &dsp_width, sizeof(dsp_width), &read, NULL);
+      ReadFile(ini_file, &dsp_height, sizeof(dsp_height), &read, NULL);
+
+      CloseHandle(ini_file);
+    } 
+  }
+
+
+  void Dsp_SaveWinCoordsIni()
+  {
+    ini_file = CreateFile(ini_path.Get(), GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    
+    if (ini_file != INVALID_HANDLE_VALUE)
+    {
+      DWORD written;
+
+      WriteFile(ini_file, &dsp_x, sizeof(dsp_x), &written, NULL);
+      WriteFile(ini_file, &dsp_y, sizeof(dsp_y), &written, NULL);
+      WriteFile(ini_file, &dsp_width, sizeof(dsp_width), &written, NULL);
+      WriteFile(ini_file, &dsp_height, sizeof(dsp_height), &written, NULL);
+
+      CloseHandle(ini_file);
+    } 
+  }
 
   ////// CONVERSION & HELPERS //////
 
@@ -1553,7 +1622,11 @@ public:
     dsp_class.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
     
     if (!RegisterClassEx(&dsp_class)) DBGS("Register failed\n")
-    
+
+    // inifile
+    ini_path = WDL_String(GetResourcePath());
+    ini_path.Append("\\");
+    ini_path.Append(INIFILE);
 
     // create midi hardware access
     m_midiin = m_midi_in_dev >= 0 ? CreateMIDIInput(m_midi_in_dev) : NULL;
@@ -1595,6 +1668,8 @@ public:
 
   bool MySetSurface_Init() 
   {
+    Dsp_GetWinCoordsIni();
+
     Hlp_GetCustomCmdIds();
     CSurf_ResetAllCachedVolPanStates(); 
     TrackList_UpdateAllExternalSurfaces(); 
@@ -1624,6 +1699,8 @@ public:
 
   bool MySetSurface_Exit()
   {
+    Dsp_SaveWinCoordsIni();
+
     CSurf_ResetAllCachedVolPanStates();
 
     MySetSurface_ExitChanMode();
@@ -3082,8 +3159,13 @@ public:
         if (s_touch_enc[ch] > 0) dsp_touch = dsp_touch | (1 << ch);
       dsp_touch = dsp_touch | s_touch_fdr;
 
-      InvalidateRect(dsp_hwnd, NULL, true);
-      UpdateWindow(dsp_hwnd);
+      if ((dsp_touch != dsp_touch_prev) || (dsp_repaint))
+      {
+        InvalidateRect(dsp_hwnd, NULL, true);
+        UpdateWindow(dsp_hwnd);
+      }
+      dsp_touch_prev = dsp_touch;
+      dsp_repaint = false;
     }
 
     // init
