@@ -99,8 +99,8 @@ Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**
 
 #### Default / Pan Mode:
 
-* **Default:** Select master
-* **F-Key:** Select all tracks / none
+* **Default:** Select all tracks / none
+* **F-Key:** Select master
 
 #### Chan Mode:
 
