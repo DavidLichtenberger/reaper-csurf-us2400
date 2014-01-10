@@ -2485,7 +2485,7 @@ public:
 
     bool sel = false;
     MediaTrack* tk;
-    if (sel_tks != all_tks) sel = true;
+    if (sel_tks == 0) sel = true;
 
     for (int i = 0; i < all_tks; i++)
     {
