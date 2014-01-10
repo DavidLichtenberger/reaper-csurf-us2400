@@ -39,17 +39,6 @@
 // Filename of ini file (in reaper ressources dir)
 #define INIFILE "csurf_us2400.ini"
 
-/* The stick is just always getting in the way, I'm not sure what to do with it, 
-for now I'll just deactivate it */
-
-/*
-
-// Stick interval (stick data gets only updated every x cycles)
-#define STICKINTV 5
-// Stick - size of dead zone in the middle (128 = totally dead)
-#define STICKDEAD 90
-
-*/
 
 
 ////// DEBUG //////
@@ -241,17 +230,6 @@ class CSurf_US2400 : public IReaperControlSurface
   bool waitformsb;
   unsigned char lsb;
 
-  /* The stick is just always getting in the way, I'm not sure what to do with it, 
-  for now I'll just deactivate it */
-
-  /*
-
-  // for joystick
-  unsigned char last_joy_x, last_joy_y;
-  char stick_ctr;
-
-  */
-
   // for myblink
   bool s_myblink;  
   int myblink_ctr;
@@ -415,24 +393,11 @@ class CSurf_US2400 : public IReaperControlSurface
       {
         OnFaderTouch(24, btn_state);
 
-        /* The stick is just always getting in the way, I'm not sure what to do with it, 
-        for now I'll just deactivate it */
-
-        /*
-
         // joystick
       } else if (evt->midi_message[0] == 0xbe) 
       {
-        // x or y
-        switch (evt->midi_message[1])
-        {
-          case 0x5a : last_joy_x = evt->midi_message[2]; break;
-          case 0x5b : last_joy_y = evt->midi_message[2]; break; 
-        } // switch (evt->midi_message[1])
-  
-        /* don't shoot events, query in regular intervals
-        // OnJoystick(last_joy_x, last_joy_y); */
-
+        // send on to input + 1 (Tascam[2])
+        kbd_OnMidiEvent(evt, m_midi_in_dev + 1);
       } // (evt->midi_message[0] == 0xb1), else, else ...
     } // if ( (waitformsb) && (evt->midi_message[0] == 0xb0) && (evt->midi_message[1] < 0x19), else
   } // MIDIin()
@@ -1019,6 +984,7 @@ class CSurf_US2400 : public IReaperControlSurface
   } // OnOut()
 
 
+
   // SPECIAL INPUT  
 
   void OnJogWheel(signed char rel_value)
@@ -1036,36 +1002,6 @@ class CSurf_US2400 : public IReaperControlSurface
   } // OnJogWheel()
 
 
-  /* The stick is just always getting in the way, I'm not sure what to do with it, 
-  for now I'll just deactivate it */
-
-  /*
-
-  void OnJoystick()
-  { 
-    if ( (q_fkey) || (q_shift) )
-    {
-      // zoom or scroll
-      bool zoom = false;
-      if (q_shift) zoom = true;
-
-      // process y data
-      char dir = -1;
-      if (last_joy_y < 64 - STICKDEAD / 2) dir = 1;
-      else if (last_joy_y > 64 + STICKDEAD / 2) dir = 0;
-      
-      if (dir != -1) CSurf_OnArrow(dir, zoom);
-
-      // process x data
-      dir = -1;
-      if (last_joy_x < 64 - STICKDEAD / 2) dir = 2;
-      else if (last_joy_x > 64 + STICKDEAD / 2) dir = 3;
-
-      if (dir != -1) CSurf_OnArrow(dir, zoom);
-    }
-  } // OnJoystick
-
-  */
 
   ////// DISPLAY //////
 
@@ -1537,18 +1473,6 @@ public:
 
     // for fader data
     waitformsb = false;
-
-    /* The stick is just always getting in the way, I'm not sure what to do with it, 
-    for now I'll just deactivate it */
-
-    /*
-
-    // for joystick;
-    last_joy_x = 0x3f;
-    last_joy_y = 0x3f;
-    stick_ctr = 0;
-    
-    */
 
     // for myblink
     s_myblink = false;
@@ -2427,15 +2351,6 @@ public:
   } // GetTouchState
 
 
-  /* Seems to work only for global mode override?
-
-  void SetAutoMode(int mode)
-  {
-  } // SetAutoMode
-
-  */
-
-
   void SetPlayState(bool play, bool pause, bool rec)
   {
     s_play = play && !pause;
@@ -3133,23 +3048,6 @@ public:
       myblink_ctr++;
     }
 
-
-    /* The stick is just always getting in the way, I'm not sure what to do with it, 
-    for now I'll just deactivate it */
-
-    /*
-
-    // stick
-    if (stick_ctr > STICKINTV)
-    {
-      OnJoystick();
-      stick_ctr = 0;
-    } else
-    {
-      stick_ctr++;
-    }
-
-    */
 
     // update Display
     if (dsp_hwnd != NULL) 

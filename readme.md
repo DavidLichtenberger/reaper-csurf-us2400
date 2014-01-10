@@ -4,7 +4,7 @@
 
 1. This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers? 
 
-2. Although there is a version for 64 bit Windows now, I have no way to test it, so you'll have to do that yourself.
+2. Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok apart from some crashes – thanks for testing, Nardberr!)
 
 ## Needs
 
@@ -13,26 +13,34 @@
 
 ## Install
 
-* If you’ve never heard of GitHub – the ‘Download ZIP‘-Button should be somewhere on the right, use it to download the files, extract them and proceed as follows:
+* If you’ve never heard of GitHub – the ‘Download ZIP’-Button should be somewhere on the right, use it to download the files, extract them and proceed as follows:
 * reaper_csurf_us2400.dll goes into Programs\REAPER\Plugins – Use the 64 bit version for Windows 7 and the like, and the 32 bit for XP.
 * All scripts go into Reaper’s Scripts directory: Documents and Settings\YourUsername\Application Data\REAPER\Scripts".
 * Now comes the tedious part: You have to load all 36 scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me!
 * Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
 * The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
+* To run the ReaScripts, Python has to be installed on your machine, read more about it [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info").
 
 ## Uninstall
 
 * Delete reaper_csurf_us2400.dll
 * If you want, remove the scripts.
 
-That‘s about it.
+That’s about it.
 
 ## Function List
 
-###New: 
-**Hitting F-Key and Shift together opens a resizable scribble strip window, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates their touch states. It's not better than the missing display on the US-2400 but almost.**
+### Channel Strip Mode:
+Due to the way many VST plugins are coded, the parameters will not appear in the same order on the US-2400 as they do in the Graphical User Interface of the plug-in – nothing I can do about that.
 
-Top to bottom, left to right:
+You can use Reapers option to switch to a **Basic UI** (the UI button on the top left of the FX window) – the parameter order in this view will match the one of the US-2400 (thanks, Nardberr!).
+
+Or you can use the **Scribble Strip Window:**
+
+### Scribble Strip Window: 
+
+Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates their touch states. It’s not better than the missing display on the US-2400 but it helps.
+
 
 ### Rotary Encoders:
 
@@ -55,7 +63,7 @@ Top to bottom, left to right:
 * **Default:** FX parameter
 * **Flip:** Volume
 * **F-Key:** FX parameter: fine 
-* **Shift:** FX parameter: toggle – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you'll have to flip and use faders, sorry.*
+* **Shift:** FX parameter: toggle – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry.*
 
 ### Faders:
 
