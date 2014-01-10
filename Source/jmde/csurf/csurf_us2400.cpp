@@ -720,8 +720,8 @@ class CSurf_US2400 : public IReaperControlSurface
       MySetSurface_Chan_SelectTrack(24, false);
     } else
     {
-      if (q_fkey) MyCSurf_ToggleSelectAllTracks();
-      else MyCSurf_SelectMaster();
+      if (q_fkey) MyCSurf_SelectMaster();
+      else MyCSurf_ToggleSelectAllTracks();
     }
   } // OnMasterSel()
 
