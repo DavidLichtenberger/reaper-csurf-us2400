@@ -25,7 +25,7 @@
 ## Uninstall
 
 * Delete reaper_csurf_us2400.dll
-* If you want, remove the scripts.
+* If you want, remove the scripts and uninstall Python, but you don't have to.
 
 That’s about it.
 
