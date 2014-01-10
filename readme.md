@@ -10,6 +10,7 @@
 
 * Cockos Reaper min. v4.57 (get it [here](http://www.reaper.fm/download.php "Download Reaper"))
 * SWS Extension min. v2.4.0 (get it [here](http://www.standingwaterstudios.com/ "Standing Water Studios"))
+* Python for the ReaScripts (choose and download the appropriate version for your machine [here](http://www.python.org/getit/ "Download Python")
 
 ## Install
 
