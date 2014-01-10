@@ -1066,6 +1066,8 @@ class CSurf_US2400 : public IReaperControlSurface
       }
       Hlp_Alphanumeric(dsp_values[ch]);
     }
+
+    dsp_repaint = true;
   }
 
 
@@ -2072,6 +2074,7 @@ public:
       else MySetSurface_UpdateEncoder(ch_id);
 
     if (dsp_hwnd != NULL) Dsp_Update();
+
   } // MySetSurface_Chan_Set_FXParamOffset
 
 
