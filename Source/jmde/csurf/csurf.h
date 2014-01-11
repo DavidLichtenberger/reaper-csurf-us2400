@@ -54,6 +54,8 @@ extern bool (*TrackFX_GetParameterStepSizes)(MediaTrack* track, int fx, int para
 extern const char* (*kbd_getTextFromCmd)(DWORD cmd, KbdSectionInfo* section);
 extern bool (*GetSetMediaTrackInfo_String)(MediaTrack* tr, const char* parmname, char* string, bool setnewvalue);
 extern const char* (*GetResourcePath)();
+extern bool (*TrackFX_GetFormattedParamValue)(MediaTrack* track, int fx, int param, char* buf, int buflen);
+extern int (*GetTrackColor)(MediaTrack* track);
 // ADDITIONS FOR US-2400 -- END
 
 /* 

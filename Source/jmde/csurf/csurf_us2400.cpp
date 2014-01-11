@@ -40,6 +40,8 @@
 #define INIFILE "csurf_us2400.ini"
 
 
+#define F2I(x) (int)((x) + 0.5)
+
 
 ////// DEBUG //////
 
@@ -90,10 +92,13 @@ int dsp_height = -1;
 int dsp_x = -1;
 int dsp_y = -1;
 
-char* dsp_values[24];
+WDL_String dsp_strings[48];
 int dsp_colors[24];
 unsigned long dsp_touch = 0;
 unsigned long dsp_touch_prev = 0;
+unsigned long dsp_sel = 0;
+unsigned long dsp_rec = 0;
+bool dsp_chan = false;
 
 
 void Dsp_Paint(HWND hwnd)
@@ -107,67 +112,127 @@ void Dsp_Paint(HWND hwnd)
   PAINTSTRUCT ps;
   hdc = BeginPaint(hwnd, &ps);
 
-  HBRUSH greybg = CreateSolidBrush(RGB(180, 180, 180));
-  HBRUSH redbg = CreateSolidBrush(RGB(240, 140, 120));
-  HPEN light = CreatePen(PS_SOLID, 1, RGB(220, 220, 220));
-  HPEN mid = CreatePen(PS_SOLID, 1, RGB(180, 180, 180));
-  HPEN dark = CreatePen(PS_SOLID, 1, RGB(140, 140, 140));
+  HFONT hfont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+  HFONT rfont = (HFONT)SelectObject(hdc, hfont);
+  
+  COLORREF bg_col = RGB(60, 60, 60);
+  
+  HBRUSH separator_bg = CreateSolidBrush(RGB(90, 90, 90));
+  HBRUSH touch_bg = CreateSolidBrush(RGB(240, 120, 120));
 
-  int pad = 5;
-  int box_width = win_width / 26;
-  int sep = box_width;
-  int x = 0;
+  HPEN white_ln = CreatePen(PS_SOLID, 1, RGB(250, 250, 250));
+  HPEN lgrey_ln = CreatePen(PS_SOLID, 1, RGB(150, 150, 150));
+  HPEN grey_ln = CreatePen(PS_SOLID, 1, RGB(90, 90, 90));  
+
+  double box_width = (win_width - 26.0) / 26.0;
+  
+  double touch_height = 3.0;
+  double single_height = 16.0;
+  double padding = 2.0;
+
+  double x = 0;
+  
   for (char ch = 0; ch < 24; ch++)
   {
-    // separators
+    // draw separators
     if ((ch % 8 == 0) && (ch != 0))
     {
-      rect.left = x + 1;
       rect.top = 0;
-      rect.right = x + sep;
-      rect.bottom = win_height;
+      rect.left = F2I(x);
+      rect.right = F2I(x + box_width + 1);
+      rect.bottom = F2I(win_height);
+      FillRect(hdc, &rect, separator_bg);
 
-      FillRect(hdc, &rect, greybg);
-
-      x += sep;
-      SelectObject(hdc, dark);
-      MoveToEx(hdc, x, 0, NULL);
-      LineTo(hdc, x, win_height);
+      x += box_width;
     }
 
-    // touchstates
-    if ( (dsp_touch & (1 << ch)) > 0 )
+    // draw and set background if applicable
+    if (dsp_colors[ch] != 0) {
+
+      int r = GetRValue(dsp_colors[ch]) / 4 + GetRValue(bg_col) / 2;
+      int g = GetGValue(dsp_colors[ch]) / 4 + GetGValue(bg_col) / 2;
+      int b = GetBValue(dsp_colors[ch]) / 4 + GetBValue(bg_col) / 2;
+
+      HBRUSH tkbg = CreateSolidBrush(RGB(r, g, b));
+
+      rect.top = 0;
+      rect.left = F2I(x);
+      rect.right = F2I(x + box_width);
+      rect.bottom = F2I(win_height);
+      FillRect(hdc, &rect, tkbg);
+
+      DeleteObject(tkbg);
+
+      SetBkColor(hdc, RGB(r, g, b));
+    
+    } else SetBkColor(hdc, bg_col);
+
+    rect.left = F2I(x + padding);
+    rect.right = F2I(x + box_width - padding);
+
+    // draw text A
+    SetTextColor(hdc, RGB(150, 150, 150));
+    if ( (dsp_sel & (1 << ch)) || ((dsp_chan) && (dsp_touch & (1 << ch))) )
+      SetTextColor(hdc, RGB(250, 250, 250));
+    else if ( !dsp_chan && (dsp_rec & (1 << ch)) )
+      SetTextColor(hdc, RGB(250, 120, 120));
+
+    rect.top = F2I(padding);
+    rect.bottom = F2I(single_height - padding);
+    DrawText(hdc, dsp_strings[ch].Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+
+    // draw touch
+    rect.top = F2I(single_height);
+    rect.bottom = F2I(single_height + touch_height);
+
+    if ((dsp_touch & (1 << ch)) != 0)
     {
-      rect.left = x;
-      rect.top = 0;
-      rect.right = x + box_width;
-      rect.bottom = pad;
-      FillRect(hdc, &rect, redbg);
+      FillRect(hdc, &rect, touch_bg);
+    
+    } else 
+    {
+      SelectObject(hdc, lgrey_ln);
+      int y = F2I(rect.top + ((rect.bottom - rect.top) / 2));
+      MoveToEx(hdc, rect.left, y, NULL);
+      LineTo(hdc, rect.right, y);
     }
 
-    // text
-    rect.left = x + pad * 2;
-    rect.top = pad;
-    rect.right = x + box_width - (pad * 2);
-    rect.bottom = win_height - pad;
-    DrawText(hdc, dsp_values[ch], -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+    // draw text B
+    SetTextColor(hdc, RGB(250, 250, 250));
+
+    rect.top = F2I(single_height + touch_height + padding);
+    rect.bottom = F2I(win_height - padding);
+    DrawText(hdc, dsp_strings[ch + 24].Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
 
     // dividers
-    if ((ch + 1) % 2 != 0) SelectObject(hdc, light);
-    else if ((ch + 1) % 4 != 0) SelectObject(hdc, mid);
-    else SelectObject(hdc, dark);
+    bool draw = false;
+    if ((ch + 1) % 2 != 0)
+    {
+      draw = true;
+      SelectObject(hdc, grey_ln);
+    
+    } else if ((ch + 1) % 4 != 0)
+    {
+      draw = true;
+      SelectObject(hdc, lgrey_ln);
+    
+    } else if ((ch + 1) % 8 != 0)
+    {
+      draw = true;
+      SelectObject(hdc, white_ln);
+    }
 
     x += box_width;
-    MoveToEx(hdc, x, 0, NULL);
-    LineTo(hdc, x, win_height);
-  }
+    if (draw)
+    {
+      MoveToEx(hdc, F2I(x), 0, NULL);
+      LineTo(hdc, F2I(x), F2I(win_height));
+    }
 
-  DeleteObject(greybg);
-  DeleteObject(redbg);
-  DeleteObject(light);
-  DeleteObject(mid);
-  DeleteObject(dark);
-  
+    x += 1.0;
+  }
+ 
+  SelectObject(hdc, rfont);
   EndPaint(hwnd, &ps);
 }
 
@@ -455,7 +520,7 @@ class CSurf_US2400 : public IReaperControlSurface
       if ((q_shift) || (q_fkey)) MySetSurface_UpdateFader(ch_id);
     } else
     {
-      s_touch_fdr = s_touch_fdr ^ (1 << ch_id);
+      s_touch_fdr = s_touch_fdr & (~(1 << ch_id));
     }
   } // OnFaderTouch
 
@@ -517,6 +582,8 @@ class CSurf_US2400 : public IReaperControlSurface
             else if (q_shift) d_value = max; // MAXIMUM
             else d_value = Cnv_FaderToFXParam(min, max, value);
             MyCSurf_Chan_SetFXParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, d_value);
+
+            Dsp_Update(ch_id);
 
           } else if (m_aux > 0) 
           { // flip + aux -> send Vol
@@ -658,6 +725,8 @@ class CSurf_US2400 : public IReaperControlSurface
           d_value = Cnv_EncoderToFXParam(d_value, min, max, step, rel_value);
           MyCSurf_Chan_SetFXParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, d_value);
        
+          Dsp_Update(ch_id);
+
         } else if (m_aux > 0)
         {
           int send_id = Cnv_AuxIDToSendID(ch_id, m_aux);
@@ -837,7 +906,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnFKey(bool btn_state)
   {
-    if (btn_state && q_shift)
+    if ((btn_state && q_shift) && (s_initdone))
     {
       if (dsp_hwnd == NULL) Dsp_OpenWindow();
       else Dsp_CloseWindow();
@@ -847,7 +916,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnShift(bool btn_state)
   {
-    if (btn_state && q_fkey)
+    if ((btn_state && q_fkey) && (s_initdone))
     {
       if (dsp_hwnd == NULL) Dsp_OpenWindow();
       else Dsp_CloseWindow();
@@ -1007,8 +1076,6 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void Dsp_OpenWindow()
   {
-    Dsp_Update();
-
     if (dsp_hwnd == NULL)
     {
       if (dsp_width == -1 || dsp_height == -1)
@@ -1016,13 +1083,16 @@ class CSurf_US2400 : public IReaperControlSurface
         RECT scr;
         SystemParametersInfo(SPI_GETWORKAREA, 0, &scr, 0);
         dsp_width = scr.right - scr.left;
-        dsp_height = 60;
+        dsp_height = 80;
         dsp_x = 0;
         dsp_y = scr.bottom - dsp_height;
       }
              
       dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, dsp_x, dsp_y, dsp_width, dsp_height, NULL, NULL, g_hInst, NULL);
     }
+
+    for (int ch = 0; ch < 24; ch++) Dsp_Update(ch);
+
     ShowWindow(dsp_hwnd, SW_SHOW);
     UpdateWindow(dsp_hwnd);
   }
@@ -1038,36 +1108,81 @@ class CSurf_US2400 : public IReaperControlSurface
   }
 
 
-  void Dsp_Update()
+  void Dsp_Update(int ch)
   {
-    MediaTrack* tk;
-
-    int fx_amount = 0;
-    if (m_chan) fx_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
-
-    for (int ch = 0; ch < 24; ch++)
+    if ((ch >= 0) && (ch < 24))
     {
-      if (dsp_values[ch] != NULL) delete dsp_values[ch];
-      dsp_values[ch] = new char[64];
+      MediaTrack* tk;
+      int tk_num, fx_amount;
+      char buffer[64];
+      bool sel = false;
+      bool rec = false;
 
       if (m_chan)
       {
-        if (ch + chan_par_offs < fx_amount) TrackFX_GetParamName(chan_rpr_tk, chan_fx, ch + chan_par_offs, dsp_values[ch], 63);
-        else dsp_values[ch] = "";
+        dsp_colors[ch] = 0;
+        dsp_chan = true;
+
+        fx_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
+        if (ch + chan_par_offs < fx_amount)
+        {
+          // fx param value
+          TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);      
+          dsp_strings[ch] = WDL_String(buffer);
+
+          // fx param name
+          TrackFX_GetParamName(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);
+          dsp_strings[ch + 24] = WDL_String(buffer);      
+
+        } else 
+        {
+          dsp_strings[ch] = "";
+          dsp_strings[ch + 24] = "";
+        }
 
       } else
       {
+        dsp_chan = false;
+
         tk = Cnv_ChannelIDToMediaTrack(ch);
         if (tk != NULL) 
         {
-          GetSetMediaTrackInfo_String(tk, "P_NAME", dsp_values[ch], false);
-          dsp_values[64] = '\0';
-        } else dsp_values[ch] = "";
-      }
-      Hlp_Alphanumeric(dsp_values[ch]);
-    }
+          // track number
+          tk_num = (int)GetMediaTrackInfo_Value(tk, "IP_TRACKNUMBER");
+          sprintf(buffer, "%d", tk_num);
+          dsp_strings[ch] = WDL_String(buffer);
 
-    dsp_repaint = true;
+          // track name
+          GetSetMediaTrackInfo_String(tk, "P_NAME", buffer, false);
+          buffer[64] = '\0';
+          dsp_strings[ch + 24] = WDL_String(buffer);
+
+          // track selected
+          sel = IsTrackSelected(tk);
+          if (sel) dsp_sel = dsp_sel | (1 << ch);
+          else dsp_sel = dsp_sel & (~(1 << ch));
+
+          // track armed
+          rec = (bool)GetMediaTrackInfo_Value(tk, "I_RECARM");
+          if (rec) dsp_rec = dsp_rec | (1 << ch);
+          else dsp_rec = dsp_rec & (~(1 << ch));
+
+          // track color
+          dsp_colors[ch] = GetTrackColor(tk);
+
+        } else 
+        {
+          dsp_strings[ch] = "";
+          dsp_strings[ch + 24] = "";
+          dsp_colors[ch] = 0;
+          dsp_sel = dsp_sel & (~(1 << ch));
+        }
+      }
+
+      dsp_strings[ch + 24] = Hlp_Alphanumeric(dsp_strings[ch + 24]);
+
+      dsp_repaint = true;
+    }
   }
 
 
@@ -1435,14 +1550,24 @@ class CSurf_US2400 : public IReaperControlSurface
   } // Hlp_GetCustomCmdIds
 
 
-  void Hlp_Alphanumeric(char* str)
+  WDL_String Hlp_Alphanumeric(WDL_String in_str)
   {
+    char* str_buf = in_str.Get();
+    bool replace = false;
     // replace everything other than A-Z, a-z, 0-9 with a space
-    for (int i = 0; i < strlen(str); i++)
-      if ( (str[i] < '0') 
-        || ((str[i] > '9') && (str[i] < 'A')) 
-        || ((str[i] > 'Z') && (str[i] < 'a'))
-        || (str[i] > 'z') ) str[i] = ' ';
+    for (int i = 0; i < strlen(str_buf); i++)
+    {
+      replace = true;
+      if (str_buf[i] == '\n') replace = false;
+      if ((str_buf[i] >= '0') && (str_buf[i] <= '9')) replace = false;
+      if ((str_buf[i] >= 'A') && (str_buf[i] <= 'Z')) replace = false;
+      if ((str_buf[i] >= 'a') && (str_buf[i] <= 'z')) replace = false;
+
+      if (replace) str_buf[i] = ' ';
+    }
+
+    WDL_String out_str = WDL_String(str_buf);
+    return out_str;
   }
 
 
@@ -1542,7 +1667,7 @@ public:
     dsp_class.hInstance = g_hInst;
     dsp_class.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     dsp_class.hCursor = LoadCursor(NULL, IDC_ARROW);
-    dsp_class.hbrBackground = CreateSolidBrush(RGB(255, 255, 255));
+    dsp_class.hbrBackground = CreateSolidBrush(RGB(60, 60, 60));
     dsp_class.lpszMenuName = NULL;
     dsp_class.lpszClassName = "dsp";
     dsp_class.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
@@ -1578,11 +1703,6 @@ public:
     } while (!s_exitdone);
     
     delete saved_sel;
-
-    for (char ch = 0; ch < 24; ch++)
-    {
-      if (dsp_values[ch] != NULL) delete dsp_values[ch];
-    }
 
     delete m_midiout;
     delete m_midiin;
@@ -1840,7 +1960,7 @@ public:
       MIDIOut(0xb0, ch_id, ((cache_faders[ch_id] >> 7) & 0x7f));
       
       // remove update flag
-      cache_upd_faders = cache_upd_faders ^ (1 << ch_id);  
+      cache_upd_faders = cache_upd_faders & (~(1 << ch_id));  
     }
   } // ExecuteFaderUpdate
 
@@ -1982,7 +2102,7 @@ public:
     MIDIOut(0xb0, ch_id + 0x40, cache_enc[ch_id]);
     
     // remove update flag
-    cache_upd_enc = cache_upd_enc ^ (1 << ch_id);
+    cache_upd_enc = cache_upd_enc & (~(1 << ch_id));
   } // ExecuteEncoderUpdate
 
 
@@ -2068,12 +2188,14 @@ public:
     int amount_paras = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
     if (chan_par_offs >= amount_paras) chan_par_offs -= 24;
     
-    // update encoders or faders
+    // update encoders or faders and scribble strip
     for (char ch_id = 0; ch_id < 23; ch_id++) 
+    {
       if (m_flip) MySetSurface_UpdateFader(ch_id);
       else MySetSurface_UpdateEncoder(ch_id);
 
-    if (dsp_hwnd != NULL) Dsp_Update();
+      if (dsp_hwnd != NULL) Dsp_Update(ch_id);
+    }
 
   } // MySetSurface_Chan_Set_FXParamOffset
 
@@ -2099,7 +2221,8 @@ public:
       // open fx              
       MyCSurf_Chan_OpenFX(chan_fx);
 
-      if (dsp_hwnd != NULL) Dsp_Update();
+      for (int enc = 0; enc < 24; enc++)
+        if (dsp_hwnd != NULL) Dsp_Update(enc);
 
     } else MySetSurface_ExitChanMode();
   } // MySetSurface_Chan_SelectTrack
@@ -2134,16 +2257,19 @@ public:
     MediaTrack* leftmost = GetTrack(0, s_ch_offset);
     SetMixerScroll(leftmost);
 
+    // update encoders, faders, track buttons, scribble strip
     for(char ch_id = 0; ch_id < 24; ch_id++)
     {
       MySetSurface_UpdateEncoder(ch_id);
       MySetSurface_UpdateFader(ch_id);
       MySetSurface_UpdateTrackElement(ch_id);
+
+      if (dsp_hwnd != NULL) Dsp_Update(ch_id);
     }
 
     MySetSurface_UpdateBankLEDs();
 
-    if (dsp_hwnd != NULL) Dsp_Update();
+    
   } // MySetSurface_ShiftBanks
 
 
@@ -2172,7 +2298,9 @@ public:
     MySetSurface_UpdateButton(0x70, true, true);
     MySetSurface_UpdateButton(0x71, true, true);
 
-    if (dsp_hwnd != NULL) Dsp_Update();
+    // update scribble strip
+    for (int enc = 0; enc < 24; enc++)
+      if (dsp_hwnd != NULL) Dsp_Update(enc);
   } // MySetSurface_EnterChanMode
 
 
@@ -2197,7 +2325,9 @@ public:
 
     MySetSurface_EnterPanMode();
 
-    if (dsp_hwnd != NULL) Dsp_Update();
+    // update scribble strip
+    for (int enc = 0; enc < 24; enc++)
+      if (dsp_hwnd != NULL) Dsp_Update(enc);
   } // MySetSurface_ExitChanMode
 
 
@@ -2277,15 +2407,15 @@ public:
   {
     CSurf_ResetAllCachedVolPanStates(); // is this needed?
 
-    // reset faders, encoders, track elements
+    // reset faders, encoders, track elements, update scribble strip
     for (int i = 0; i < 25; i++)
     {
       MySetSurface_UpdateFader(i);
       MySetSurface_UpdateTrackElement(i);
       MySetSurface_UpdateEncoder(i);
-    }
 
-    if (dsp_hwnd != NULL) Dsp_Update();
+      if ((dsp_hwnd != NULL) && (i < 24)) Dsp_Update(i);
+    }
   } // SetTrackListChange
 
 
@@ -2305,10 +2435,12 @@ public:
   {
     int ch_id = Cnv_MediaTrackToChannelID(rpr_tk);
 
+    // update buttons
     if ( (ch_id >= 0) && (ch_id <= 24) ) 
     {
       MySetSurface_UpdateButton(4 * ch_id + 1, selected, false);
       if (selected) Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
+      Dsp_Update(ch_id);
     }
   } // SetSurfaceSelected
 
@@ -2332,7 +2464,12 @@ public:
   void SetSurfaceRecArm(MediaTrack* rpr_tk, bool recarm)
   {
     int ch_id = Cnv_MediaTrackToChannelID(rpr_tk);
-    MySetSurface_UpdateEncoder(ch_id);
+
+    if ((ch_id > 0) && (ch_id < 24))
+    {
+      MySetSurface_UpdateEncoder(ch_id);
+      Dsp_Update(ch_id);
+    }
   } // SetSurfaceRecArm
 
 
@@ -2550,16 +2687,8 @@ public:
 
     MySetSurface_UpdateAuxButtons();
 
-    if (dsp_hwnd != NULL) Dsp_Update();
-
-    /* Stuff below is not needed when we update faders/encoders in a loop 
-
-    // update encoders or faders
-    for (char ch_id = 0; ch_id < 23; ch_id++) 
-      if (m_flip) MySetSurface_UpdateFader(ch_id);
-      else MySetSurface_UpdateEncoder(ch_id);
-
-    */
+    for (int enc = 0; enc < 24; enc++)
+      if (dsp_hwnd != NULL) Dsp_Update(enc);
   } // MyCSurf_Chan_OpenFX
   
 

@@ -29,63 +29,64 @@
 
 That’s about it.
 
-## Function List
+## Functions
 
-### Channel Strip Mode:
+### Channel Strip Mode
 Due to the way many VST plugins are coded, the parameters will not appear in the same order on the US-2400 as they do in the Graphical User Interface of the plug-in – nothing I can do about that.
 
 You can use Reapers option to switch to a **Basic UI** (the UI button on the top left of the FX window) – the parameter order in this view will match the one of the US-2400 (thanks, Nardberr!).
 
-Or you can use the **Scribble Strip Window:**
+Or you can use the **Scribble Strip Window**.
 
-### Scribble Strip Window: 
+### Scribble Strip Window
 
-Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates their touch states. It’s not better than the missing display on the US-2400 but it helps.
+Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
 
+Still not better than if the US-2400 had a display, but it sure helps.
 
-### Rotary Encoders:
+### Rotary Encoders
 
-#### Default / Pan Mode:
+#### Default / Pan Mode
 
 * **Default:** Pan
 * **Flip:** Volume
 * **F-Key:** Width
 * **Shift:** Pan > C
 
-#### Aux Mode:
+#### Aux Mode
 
 * **Default:** Send volume
 * **Flip:** Send pan!
 * **F-Key:** Send Volume > -inf dB
 * **Shift:** Send Volume > 0 dB
 
-#### Chan Mode:
+#### Chan Mode
 
 * **Default:** FX parameter
 * **Flip:** Volume
 * **F-Key:** FX parameter: fine 
 * **Shift:** FX parameter: toggle – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry.*
 
-### Faders:
+### Faders
 
-#### Default / Pan Mode:
+#### Default / Pan Mode
 
 * **Default:** Volume
 * **Flip:** Pan
 * **F-Key:** Volume > -inf dB
 * **Shift:** Volume > 0 dB
 
-#### Aux Mode:
+#### Aux Mode
 
 * **Flip:** Send volume
 
-#### Chan Mode:
+#### Chan Mode
 
 * **Flip:** FX Parameter – *if it seems you just can’t manage to turn a switch with the rotaries (unfortunately it happens, see above), you can flip and use the fader as a workaround. Sucks, I know.*
 
-### Sel Buttons – Tracks:
+### Sel Buttons – Tracks
 
-#### Default / Pan Mode:
+#### Default / Pan Mode
 
 * **Default:** Select
 * **F-Key:** Switch Phase – *indicated by the diode below the indicators*
@@ -95,48 +96,48 @@ Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**
 
 * **Default:** Select track for channel strip
 
-### Sel Button – Master:
+### Sel Button – Master
 
-#### Default / Pan Mode:
+#### Default / Pan Mode
 
 * **Default:** Select all tracks / none
 * **F-Key:** Select master
 
-#### Chan Mode:
+#### Chan Mode
 
 * **Default:** Select master for channel strip
 
-### Solo Button:
+### Solo Button
 
 * **Default:** Solo track
 * **F-Key:** Solo only this track (un-solo all others)
 
-### Mute-Button:
+### Mute-Button
 
 * **Default:** Mute track
 * **F-Key:** Mute only this track (un-mute all others)
 * **Shift:** Bypass all FX of this track – *trust me, you want this outside of Chan Mode*
 
-### Clear Solo (Master):
+### Clear Solo (Master)
 
 * **Default:** Un-solo all tracks
 * **F-Key:** Un-mute all tracks
 
-### Flip:
+### Flip
 
 * Flip
 
-### Chan:
+### Chan
 
 * Enter / exit channel strip (Chan Mode)
 
-### Pan:
+### Pan
 
 * Enter default mode (Pan Mode)
 
-### Aux-Block (1 – 6):
+### Aux-Block (1 – 6)
 
-#### Default / Pan Mode:
+#### Default / Pan Mode
 
 * **Default / 1 – 6:** Enter Aux Mode 1 – 6 (adjust sends, etc.)
 * **F-Key / 1:** Move selected tracks left
@@ -152,7 +153,7 @@ Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**
 * **Shift / 5:** Delete selected tracks
 * **Shift / 6:** Remove selected tracks from any group
 
-#### Chan Mode:
+#### Chan Mode
 
 * **Default / 1:** Bank shift FX parameters left (steps of 24)
 * **Default / 2:** Bank shift FX parameters right (steps of 24)
@@ -163,28 +164,28 @@ Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**
 
 *The F-Key and Shift actions here are the same as in Pan Mode, but you can make your own additions (see Notes).*
 
-#### Aux Mode:
+#### Aux Mode
 
 * **Default / 1 – 6:** Enter Aux Mode 1 – 6
 * **F-Key / 1 – 6:** Add aux send 1 – 6 to selected tracks
 * **Shift / 1 – 6:** Remove aux send 1 – 6 from selected tracks
 
-### Null Button (below F-Key):
+### Null Button (below F-Key)
 
 * **Default:** Zoom to fit time selection
 * **F-Key:** Scroll to play position
 * **Shift:** Zoom to fit track selection
 
-### Jog Wheel / Scrub Button:
+### Jog Wheel / Scrub Button
 
 * **Scrub Button** activates Scrub, otherwise the Jogwheel just moves the cursor silently
 * **F-Key** enables faster adjustments
 
-### Joystick:
+### Joystick
 
 *I had this doing zooming and scrolling, but it was more a nuisance than anything, so I removed it for now.*
 
-### Bank Switches (below Scrub):
+### Bank Switches (below Scrub)
 
 #### Default (Pan Mode) and Aux Mode:
 
@@ -192,7 +193,7 @@ Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**
 * **Shift:** Bank shift left / right (steps of 24)
 * **F-Key:** Move left edge of time selection left / right by 1 bar 
 
-#### Chan Mode:
+#### Chan Mode
 
 * **Default:** Previous / next FX in chain
 * **Shift:** Hide / show FX chain

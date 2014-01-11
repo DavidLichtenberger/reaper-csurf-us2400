@@ -58,6 +58,8 @@ double (*TrackFX_GetParamEx)(MediaTrack* track, int fx, int param, double* minva
 const char* (*kbd_getTextFromCmd)(DWORD cmd, KbdSectionInfo* section);
 bool (*GetSetMediaTrackInfo_String)(MediaTrack* tr, const char* parmname, char* string, bool setnewvalue);
 const char* (*GetResourcePath)();
+bool (*TrackFX_GetFormattedParamValue)(MediaTrack* track, int fx, int param, char* buf, int buflen);
+int (*GetTrackColor)(MediaTrack* track);
 // ADDITIONS FOR US-2400 -- END
 
 
@@ -222,6 +224,8 @@ REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(REAPER_PLUGIN_HINSTANCE hI
   IMPAPI(kbd_getTextFromCmd)
   IMPAPI(GetSetMediaTrackInfo_String)
   IMPAPI(GetResourcePath)
+  IMPAPI(TrackFX_GetFormattedParamValue)
+  IMPAPI(GetTrackColor)
 
 
   IMPAPI(DB2SLIDER)
