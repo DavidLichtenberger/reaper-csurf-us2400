@@ -42,7 +42,10 @@ Or you can use the **Scribble Strip Window**.
 
 Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
 
-Still not better than if the US-2400 had a display, but it sure helps.
+Still not better than if the US-2400 had a display, but it sure helps:
+
+[Image: Track View (Pan and Aux Modes)](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View")
+[Image: Channel Strip View (Chan Mode)](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
 
 ### Rotary Encoders
 
@@ -220,7 +223,7 @@ Still not better than if the US-2400 had a display, but it sure helps.
 
 ## Notes
 
-*   For an overview of the functions you can also refer to the [Keymap](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-400-Reaper-Keymap.gif "Keymap – GIF") (and you can print that and stick it on your master section). 
+*   For an overview of the functions you can also refer to the [Keymap](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-2400-Reaper-Keymap.gif "Keymap – GIF") (and you can print that and stick it on your master section). 
 
 *   You can now make your own Reascript custom actions for the Aux Block: Keys 1 to 6 with 2 qualifier keys (Shift and F-Key) in 3 Modes (Pan, Chan, Aux) – that makes 36 actions at your disposal! 
 
