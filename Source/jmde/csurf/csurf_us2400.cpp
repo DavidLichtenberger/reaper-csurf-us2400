@@ -91,6 +91,7 @@ int dsp_width = -1;
 int dsp_height = -1;
 int dsp_x = -1;
 int dsp_y = -1;
+int dsp_open = 0;
 
 WDL_String dsp_strings[48];
 int dsp_colors[24];
@@ -98,6 +99,7 @@ unsigned long dsp_touch = 0;
 unsigned long dsp_touch_prev = 0;
 unsigned long dsp_sel = 0;
 unsigned long dsp_rec = 0;
+unsigned long dsp_mute = 0;
 bool dsp_chan = false;
 
 
@@ -175,7 +177,7 @@ void Dsp_Paint(HWND hwnd)
     if ( (dsp_sel & (1 << ch)) || ((dsp_chan) && (dsp_touch & (1 << ch))) )
       SetTextColor(hdc, RGB(250, 250, 250));
     else if ( !dsp_chan && (dsp_rec & (1 << ch)) )
-      SetTextColor(hdc, RGB(250, 120, 120));
+      SetTextColor(hdc, RGB(250, 60, 60));
 
     rect.top = F2I(padding);
     rect.bottom = F2I(single_height - padding);
@@ -199,6 +201,7 @@ void Dsp_Paint(HWND hwnd)
 
     // draw text B
     SetTextColor(hdc, RGB(250, 250, 250));
+    if (dsp_mute & (1 << ch)) SetTextColor(hdc, RGB(150, 150, 150));
 
     rect.top = F2I(single_height + touch_height + padding);
     rect.bottom = F2I(win_height - padding);
@@ -838,38 +841,6 @@ class CSurf_US2400 : public IReaperControlSurface
       else if (m_chan) Main_OnCommand(cmd_chan_fkey[sel-1],0); // Reascript: Chan-Mode - FKey - X
       else Main_OnCommand(cmd_pan_fkey[sel-1],0);              // Reascript: Pan-Mode - FKey - X
 
-      /* 
-
-      } else
-      {
-        if (sel >= 5)
-        {
-          if (m_chan && (cmd_chan_fkey[sel-1] != -1)) 
-          {
-            Main_OnCommand(cmd_chan_fkey[sel-1],0);
-
-          } else if (cmd_pan_fkey[sel-1] != -1) 
-          {
-            Main_OnCommand(cmd_pan_fkey[sel-1],0);
-
-          } else
-          {
-            // if no actions defined emulate Esc / Enter
-            switch (sel)
-            {
-              case 5: MyCSurf_EmulateKeyStroke(27); break;
-              case 6: MyCSurf_EmulateKeyStroke(13); break;
-            }
-          }
-        } else
-        {
-          if (m_chan) Main_OnCommand(cmd_chan_fkey[sel-1],0);
-          else Main_OnCommand(cmd_pan_fkey[sel-1],0);
-        }
-      }
-
-      */
-
     } else if (q_shift)
     {
       if (m_aux > 0) Main_OnCommand(cmd_aux_shift[sel-1],0);    // Reascript: Aux-Mode - Shift - X
@@ -1075,7 +1046,7 @@ class CSurf_US2400 : public IReaperControlSurface
   ////// DISPLAY //////
 
   void Dsp_OpenWindow()
-  {
+  { 
     if (dsp_hwnd == NULL)
     {
       if (dsp_width == -1 || dsp_height == -1)
@@ -1095,6 +1066,8 @@ class CSurf_US2400 : public IReaperControlSurface
 
     ShowWindow(dsp_hwnd, SW_SHOW);
     UpdateWindow(dsp_hwnd);
+
+    dsp_open = 1;
   }
 
 
@@ -1105,6 +1078,8 @@ class CSurf_US2400 : public IReaperControlSurface
       DestroyWindow(dsp_hwnd);
       dsp_hwnd = NULL;
     }
+
+    dsp_open = 0;
   }
 
 
@@ -1117,6 +1092,7 @@ class CSurf_US2400 : public IReaperControlSurface
       char buffer[64];
       bool sel = false;
       bool rec = false;
+      bool muted = false;
 
       if (m_chan)
       {
@@ -1157,14 +1133,20 @@ class CSurf_US2400 : public IReaperControlSurface
           buffer[64] = '\0';
           dsp_strings[ch + 24] = WDL_String(buffer);
 
-          // track selected
-          sel = IsTrackSelected(tk);
-          if (sel) dsp_sel = dsp_sel | (1 << ch);
+          // track mute, selected, rec arm
+          int flags;
+          GetTrackState(tk, &flags);
+
+          // muted
+          if ( (bool)(flags & 8) ) dsp_mute = dsp_mute | (1 << ch);
+          else dsp_mute = dsp_mute & (~(1 << ch));
+
+          // selected
+          if ( (bool)(flags & 2) ) dsp_sel = dsp_sel | (1 << ch);
           else dsp_sel = dsp_sel & (~(1 << ch));
 
-          // track armed
-          rec = (bool)GetMediaTrackInfo_Value(tk, "I_RECARM");
-          if (rec) dsp_rec = dsp_rec | (1 << ch);
+          // armed
+          if ( (bool)(flags & 64) ) dsp_rec = dsp_rec | (1 << ch);
           else dsp_rec = dsp_rec & (~(1 << ch));
 
           // track color
@@ -1198,6 +1180,7 @@ class CSurf_US2400 : public IReaperControlSurface
       ReadFile(ini_file, &dsp_y, sizeof(dsp_y), &read, NULL);
       ReadFile(ini_file, &dsp_width, sizeof(dsp_width), &read, NULL);
       ReadFile(ini_file, &dsp_height, sizeof(dsp_height), &read, NULL);
+      ReadFile(ini_file, &dsp_open, sizeof(dsp_open), &read, NULL);
 
       CloseHandle(ini_file);
     } 
@@ -1216,6 +1199,7 @@ class CSurf_US2400 : public IReaperControlSurface
       WriteFile(ini_file, &dsp_y, sizeof(dsp_y), &written, NULL);
       WriteFile(ini_file, &dsp_width, sizeof(dsp_width), &written, NULL);
       WriteFile(ini_file, &dsp_height, sizeof(dsp_height), &written, NULL);
+      WriteFile(ini_file, &dsp_open, sizeof(dsp_open), &written, NULL);
 
       CloseHandle(ini_file);
     } 
@@ -1695,8 +1679,6 @@ public:
 
   ~CSurf_US2400()
   {
-    Dsp_CloseWindow();
-
     s_exitdone = MySetSurface_Exit();
     do
     { Sleep(500);  
@@ -1738,7 +1720,7 @@ public:
     // Set global auto mode to off / trim, CSurf cmds only change track modes
     SetAutomationMode(0, false);
     MySetSurface_UpdateAutoLEDs();
-        
+
     return true;
   } // MySetSurface_Init
 
@@ -1767,6 +1749,8 @@ public:
 
     // reset bank leds
     MIDIOut(0xb0, 0x5d, 0);
+
+    Dsp_CloseWindow();
 
     return true;
   } // MySetSurface_Exit
@@ -2427,6 +2411,8 @@ public:
     {
       if (mute) MySetSurface_UpdateButton(4 * ch_id + 3, true, false);
       else MySetSurface_UpdateButton(4 * ch_id + 3, false, false);
+
+      Dsp_Update(ch_id);
     }
   } // SetSurfaceMute
 
@@ -3199,7 +3185,11 @@ public:
     }
 
     // init
-    if (!s_initdone) s_initdone = MySetSurface_Init();
+    if (!s_initdone) 
+    {
+      s_initdone = MySetSurface_Init();
+      if (dsp_open == 1) Dsp_OpenWindow();
+    }
   } // Run
 
 
