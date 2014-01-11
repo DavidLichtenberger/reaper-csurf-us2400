@@ -44,8 +44,8 @@ Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**
 
 Still not better than if the US-2400 had a display, but it sure helps:
 
-[Image: Track View (Pan and Aux Modes)](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View")
-[Image: Channel Strip View (Chan Mode)](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
+Images: [Track View (Pan and Aux Modes)](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View"), 
+[Channel Strip View (Chan Mode)](https://github.com/DavidLichtenberger/reaper-csurf-us2400/blob/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
 
 ### Rotary Encoders
 
