@@ -236,6 +236,16 @@ void Dsp_Paint(HWND hwnd)
   }
  
   SelectObject(hdc, rfont);
+  DeleteObject(hfont);
+  DeleteObject(rfont);
+
+  DeleteObject(separator_bg);
+  DeleteObject(touch_bg);
+
+  DeleteObject(white_ln);
+  DeleteObject(lgrey_ln);
+  DeleteObject(grey_ln);
+
   EndPaint(hwnd, &ps);
 }
 
