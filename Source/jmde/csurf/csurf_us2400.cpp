@@ -1113,11 +1113,12 @@ class CSurf_US2400 : public IReaperControlSurface
         if (ch + chan_par_offs < fx_amount)
         {
           // fx param value
-          if (!TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64))
+          TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer,64);
+          if (strlen(buffer) == 0)
           {
             double min, max;
             double par = TrackFX_GetParam(chan_rpr_tk, chan_fx, ch + chan_par_offs, &min, &max);
-            wsprintf(buffer, "%f", par);
+            sprintf(buffer, "%.4f", par);
           }
           dsp_strings[ch] = WDL_String(buffer);
 
@@ -1140,7 +1141,7 @@ class CSurf_US2400 : public IReaperControlSurface
         {
           // track number
           tk_num = (int)GetMediaTrackInfo_Value(tk, "IP_TRACKNUMBER");
-          wsprintf(buffer, "%d", tk_num);
+          sprintf(buffer, "%d", tk_num);
           dsp_strings[ch] = WDL_String(buffer);
 
           // track name
@@ -1257,7 +1258,7 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     char search[256];
     char sendname[256];
-    wsprintf(search, AUXSTRING, aux);
+    sprintf(search, AUXSTRING, aux);
 
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
     int all_sends = GetTrackNumSends(rpr_tk, 0);
@@ -1525,7 +1526,7 @@ class CSurf_US2400 : public IReaperControlSurface
       {
         for (int s = 0; s < 6; s++)
         {
-           wsprintf(index_string, "- %d", s+1);
+           sprintf(index_string, "- %d", s+1);
            if (strstr(name, index_string)) index = s;
         }
 
@@ -3091,7 +3092,7 @@ public:
   {
     descspace.Set("Tascam US-2400");
     char tmp[512];
-    wsprintf(tmp," (dev %d,%d)",m_midi_in_dev,m_midi_out_dev);
+    sprintf(tmp," (dev %d,%d)",m_midi_in_dev,m_midi_out_dev);
     descspace.Append(tmp);
     return descspace.Get();     
   }
@@ -3099,7 +3100,7 @@ public:
 
   const char *GetConfigString() // string of configuration data
   {
-    wsprintf(configtmp,"0 0 %d %d",m_midi_in_dev,m_midi_out_dev);      
+    sprintf(configtmp,"0 0 %d %d",m_midi_in_dev,m_midi_out_dev);      
     return configtmp;
   }
 
