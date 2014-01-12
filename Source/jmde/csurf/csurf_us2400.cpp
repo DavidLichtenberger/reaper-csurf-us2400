@@ -201,7 +201,7 @@ void Dsp_Paint(HWND hwnd)
 
     // draw text B
     SetTextColor(hdc, RGB(250, 250, 250));
-    if (dsp_mute & (1 << ch)) SetTextColor(hdc, RGB(150, 150, 150));
+    if ( !dsp_chan && (dsp_mute & (1 << ch)) ) SetTextColor(hdc, RGB(150, 150, 150));
 
     rect.top = F2I(single_height + touch_height + padding);
     rect.bottom = F2I(win_height - padding);
@@ -1113,12 +1113,17 @@ class CSurf_US2400 : public IReaperControlSurface
         if (ch + chan_par_offs < fx_amount)
         {
           // fx param value
-          TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);      
+          if (!TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64))
+          {
+            double min, max;
+            double par = TrackFX_GetParam(chan_rpr_tk, chan_fx, ch + chan_par_offs, &min, &max);
+            wsprintf(buffer, "%f", par);
+          }
           dsp_strings[ch] = WDL_String(buffer);
 
           // fx param name
           TrackFX_GetParamName(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);
-          dsp_strings[ch + 24] = WDL_String(buffer);      
+          dsp_strings[ch + 24] = WDL_String(buffer);
 
         } else 
         {
@@ -1135,7 +1140,7 @@ class CSurf_US2400 : public IReaperControlSurface
         {
           // track number
           tk_num = (int)GetMediaTrackInfo_Value(tk, "IP_TRACKNUMBER");
-          sprintf(buffer, "%d", tk_num);
+          wsprintf(buffer, "%d", tk_num);
           dsp_strings[ch] = WDL_String(buffer);
 
           // track name
@@ -1252,7 +1257,7 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     char search[256];
     char sendname[256];
-    sprintf(search, AUXSTRING, aux);
+    wsprintf(search, AUXSTRING, aux);
 
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
     int all_sends = GetTrackNumSends(rpr_tk, 0);
@@ -1520,7 +1525,7 @@ class CSurf_US2400 : public IReaperControlSurface
       {
         for (int s = 0; s < 6; s++)
         {
-           sprintf(index_string, "- %d", s+1);
+           wsprintf(index_string, "- %d", s+1);
            if (strstr(name, index_string)) index = s;
         }
 
@@ -3086,7 +3091,7 @@ public:
   {
     descspace.Set("Tascam US-2400");
     char tmp[512];
-    sprintf(tmp," (dev %d,%d)",m_midi_in_dev,m_midi_out_dev);
+    wsprintf(tmp," (dev %d,%d)",m_midi_in_dev,m_midi_out_dev);
     descspace.Append(tmp);
     return descspace.Get();     
   }
@@ -3094,7 +3099,7 @@ public:
 
   const char *GetConfigString() // string of configuration data
   {
-    sprintf(configtmp,"0 0 %d %d",m_midi_in_dev,m_midi_out_dev);      
+    wsprintf(configtmp,"0 0 %d %d",m_midi_in_dev,m_midi_out_dev);      
     return configtmp;
   }
 
