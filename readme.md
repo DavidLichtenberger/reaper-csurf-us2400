@@ -2,16 +2,19 @@
 
 ## Disclaimer
 
-1. This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers? 
+1.   This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers? 
 
-2. Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok apart from some crashes – working on it, and thanks for testing, Nardberr!)
+2.   Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok apart from some crashes – working on it, and thanks for testing, Nardberr!)
 
 ## Needs
 
-* Cockos Reaper min. v4.57 (get it [here](http://www.reaper.fm/download.php "Download Reaper"))
-* SWS Extension min. v2.4.0 (get it [here](http://www.standingwaterstudios.com/ "Standing Water Studios"))
-* To run ReaScripts, Python has to be installed on your machine, read more about it [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info"). Choose and download the appropriate version for your machine [here](http://www.python.org/getit/ "Download Python")
-* The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
+*   Cockos Reaper min. v4.57 (get it [here](http://www.reaper.fm/download.php "Download Reaper"))
+
+*   SWS Extension min. v2.4.0 (get it [here](http://www.standingwaterstudios.com/ "Standing Water Studios"))
+
+*   To run ReaScripts, Python has to be installed on your machine, read more about it [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info"). Choose and download the appropriate version for your machine [here](http://www.python.org/getit/ "Download Python")
+
+*   The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
 
 ## Install
 
@@ -29,14 +32,16 @@
 
 ## Uninstall
 
-* Delete reaper_csurf_us2400.dll
-* If you want, remove the scripts and uninstall Python, but you don't have to.
+*   Delete reaper_csurf_us2400.dll
+
+*   If you want, remove the scripts and uninstall Python, but you don't have to.
 
 That’s about it.
 
 ## Functions
 
 ### Channel Strip Mode
+
 Due to the way many VST plugins are coded, the parameters will not appear in the same order on the US-2400 as they do in the Graphical User Interface of the plug-in – nothing I can do about that.
 
 You can use Reapers option to switch to a **Basic UI** (the UI button on the top left of the FX window) – the parameter order in this view will match the one of the US-2400 (thanks, Nardberr!).
@@ -223,7 +228,7 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 ### Transport
 
 * **Default – Rew / FFwd:** Move play cursor to next marker or other point of interest (use Jog Wheel for other adjustments) – *Remove the ReaScripts to enable default actions* 
-* **Default – Stop / Play / Record:** Stop, Play, Record – 
+* **Default – Stop / Play / Record:** Stop, Play, Record
 * **Shift – Rew / FFwd / Stop / Play:** Set automation mode (Off / Trim, Read, Latch, Write) for selected tracks. The diodes above blink accordingly, if there are tracks with different modes, more than one will blink. 
 * **Shift – Rec:** Write current automation values of envelopes in Write / Latch Mode to the complete time selection. 
 * **F-Key – Rew:** Undo
@@ -232,7 +237,9 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 * **F-Key – Play:** Save project with dialog (Save as)
 * **F-Key – Rec:** Save project (Overwrite)
 
-*All transport actions can be customized by altering the according ReaScripts (or enabling the ones in the ‘Unassigned’ folder). For Default and Shift actions there are hardcoded actions (see above) the extension falls back on if there is no ReaScript for the combination.*
+All transport actions can be customized by altering, adding or removing the according ReaScripts. 
+
+The Default and Shift actions of all buttons have hardcoded actions that get overriden if there are ReaScripts (e.g. those in the ‘Unassigned’ folder) or assigned when the ReaScripts are removed.
 
 ## Notes
 
