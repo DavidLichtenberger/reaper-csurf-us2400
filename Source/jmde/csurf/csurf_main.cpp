@@ -60,6 +60,10 @@ bool (*GetSetMediaTrackInfo_String)(MediaTrack* tr, const char* parmname, char* 
 const char* (*GetResourcePath)();
 bool (*TrackFX_GetFormattedParamValue)(MediaTrack* track, int fx, int param, char* buf, int buflen);
 int (*GetTrackColor)(MediaTrack* track);
+bool (*HasExtState)(const char* section, const char* key);
+const char* (*GetExtState)(const char* section, const char* key);
+void (*SetExtState)(const char* section, const char* key, const char* value, bool persist);
+
 // ADDITIONS FOR US-2400 -- END
 
 
@@ -226,6 +230,10 @@ REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(REAPER_PLUGIN_HINSTANCE hI
   IMPAPI(GetResourcePath)
   IMPAPI(TrackFX_GetFormattedParamValue)
   IMPAPI(GetTrackColor)
+  IMPAPI(HasExtState)
+  IMPAPI(GetExtState)
+  IMPAPI(SetExtState)
+
 
 
   IMPAPI(DB2SLIDER)

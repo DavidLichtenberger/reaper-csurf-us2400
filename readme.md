@@ -14,13 +14,21 @@
 
 ## Install
 
-* If you’ve never heard of GitHub – the ‘Download ZIP’-Button should be somewhere on the right, use it to download the files, extract them and proceed as follows:
-* reaper_csurf_us2400.dll goes into Programs\REAPER\Plugins – Use the 64 bit version for Windows 7 and the like, and the 32 bit for XP.
-* All scripts go into Reaper’s Scripts directory: Documents and Settings\YourUsername\Application Data\REAPER\Scripts".
-* Now comes the tedious part: You have to load all 36 scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me!
-* Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
-* The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
-* To run the ReaScripts, Python has to be installed on your machine, read more about it [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info").
+*   If you’ve never heard of GitHub – the ‘Download ZIP’-Button should be somewhere on the right, use it to download the files, extract them and proceed as follows:
+
+*   reaper_csurf_us2400.dll goes into Programs\REAPER\Plugins – Use the 64 bit version for Windows 7 and the like, and the 32 bit for XP.
+
+*   All scripts go into Reaper’s Scripts directory: Documents and Settings\YourUsername\Application Data\REAPER\Scripts".
+
+*   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me! *I found a nice hack for this: hitting the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
+
+    For the default function set, don't import the ones in the ‘Unassigned’-folder (you can use those if you wish to override the default actions). See below for implementing custom actions.
+
+*   Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
+
+*   The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
+
+*   To run the ReaScripts, Python has to be installed on your machine, read more about it [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info").
 
 ## Uninstall
 
@@ -156,6 +164,8 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 * **Shift / 5:** Delete selected tracks
 * **Shift / 6:** Remove selected tracks from any group
 
+*The actions on F-Key and Shift can be customized by altering the according ReaScripts.*
+
 #### Chan Mode
 
 * **Default / 1:** Bank shift FX parameters left (steps of 24)
@@ -165,7 +175,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 * **Default / 5:** Delete current FX
 * **Default / 6:** Switch between recording FX automation (plugin parameters) and track automation (volume, pan, etc.)
 
-*The F-Key and Shift actions here are the same as in Pan Mode, but you can make your own additions (see Notes).*
+*The F-Key and Shift actions here are the same as in Pan Mode, but you can make your own additions by altering the according ReaScripts.*
 
 #### Aux Mode
 
@@ -173,11 +183,15 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 * **F-Key / 1 – 6:** Add aux send 1 – 6 to selected tracks
 * **Shift / 1 – 6:** Remove aux send 1 – 6 from selected tracks
 
+*The actions on F-Key and Shift can be customized by altering the according ReaScripts.*
+
 ### Null Button (below F-Key)
 
 * **Default:** Zoom to fit time selection
 * **F-Key:** Scroll to play position
 * **Shift:** Zoom to fit track selection
+
+*All actions can be customized by altering the according ReaScripts.*
 
 ### Jog Wheel / Scrub Button
 
@@ -186,7 +200,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 
 ### Joystick
 
-*I had this doing zooming and scrolling, but it was more a nuisance than anything, so I removed it for now.*
+Signals from the Joystick are not assigned to any Control Surface functions. Instead, the MIDI signals get transmitted on the second US-2400 MIDI input (CH 15, Y: CC 90 / X: CC 91), so you can use those for whatever you like.
 
 ### Bank Switches (below Scrub)
 
@@ -199,27 +213,29 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 #### Chan Mode
 
 * **Default:** Previous / next FX in chain
-* **Shift:** Hide / show FX chain
+* **Shift:** Bank shift left / right (steps of 24)
 * **F-Key:** Move current FX up / down in chain
 
 ### In/Out Buttons (to the right of Bank Switches)
 
 * **Default:** Time-select previous / next region (between the previous / next set of markers)
-* **Shift – In:** Toggle time-selection between whole project and current range
+* **Shift – In:** Toggle time-selection between whole project and current range (or nothing)
 * **Shift – Out:** Toggle loop time-selection
 * **F-Key:** Move right edge of time selection left / right by 1 bar 
 
 ### Transport
 
-* **Default – Rew / FFwd:** Move play cursor to next marker or other point of interest (use Jog Wheel for other adjustments)
-* **Default – Stop / Play / Record:** Stop, Play, Record
-* **Shift – Rew / FFwd / Stop / Play:** Set automation mode (Off / Trim, Read, Latch, Write) for selected tracks. *The diodes above blink accordingly, if there are tracks with different modes, more than one will blink.*
-* **Shift – Rec:** Write current automation values of envelopes in Write / Latch Mode to the complete time selection – *I use this a lot, so it’s down here*
+* **Default – Rew / FFwd:** Move play cursor to next marker or other point of interest (use Jog Wheel for other adjustments) – *Remove the ReaScripts to enable default actions* 
+* **Default – Stop / Play / Record:** Stop, Play, Record – 
+* **Shift – Rew / FFwd / Stop / Play:** Set automation mode (Off / Trim, Read, Latch, Write) for selected tracks. The diodes above blink accordingly, if there are tracks with different modes, more than one will blink. 
+* **Shift – Rec:** Write current automation values of envelopes in Write / Latch Mode to the complete time selection. 
 * **F-Key – Rew:** Undo
 * **F-Key – FFwd:** Redo
 * **F-Key – Stop:** Scroll with playback
 * **F-Key – Play:** Save project with dialog (Save as)
 * **F-Key – Rec:** Save project (Overwrite)
+
+*All transport actions can be customized by altering the according ReaScripts (or enabling the ones in the ‘Unassigned’ folder). For Default and Shift actions there are hardcoded actions (see above) the extension falls back on if there is no ReaScript for the combination.*
 
 ## Notes
 

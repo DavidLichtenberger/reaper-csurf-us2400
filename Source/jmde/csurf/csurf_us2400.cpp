@@ -39,7 +39,7 @@
 // Filename of ini file (in reaper ressources dir)
 #define INIFILE "csurf_us2400.ini"
 
-
+// float to int macro
 #define F2I(x) (int)((x) + 0.5)
 
 
@@ -61,21 +61,12 @@
 // Unnamed Commands
 #define CMD_SELALLITEMS 40182
 #define CMD_UNSELALLITEMS 40289
-#define CMD_RJUMP 40172     
-#define CMD_FJUMP 40173
 #define CMD_TIMESEL2ITEMS 40290
 #define CMD_CLEARTIMESEL 40635
-#define CMD_TGLPLAYSCROLL 40036
-#define CMD_TGLRECSCROLL 40262
 #define CMD_TGGLRECBEAT 40045
 #define CMD_AUTOTOSEL 41160
 #define CMD_FXBROWSER 40271
-#define CMD_UNDO 40029
-#define CMD_REDO 40030
-#define CMD_SAVE 40026
-#define CMD_SAVEAS 40022
 #define CMD_SEL2LASTTOUCH 40914
-#define CMD_TKAUTOMODES 40400
 
 #include "csurf.h"
 
@@ -297,12 +288,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
 
   // cmd_ids
-  int cmd_aux_fkey[6];
-  int cmd_aux_shift[6];
-  int cmd_pan_fkey[6];
-  int cmd_pan_shift[6];
-  int cmd_chan_fkey[6];
-  int cmd_chan_shift[6];
+  int cmd_ids[3][3][12]; //[none/shift/fkey][pan/chan/aux][1-6/null/rew/ffwd/stop/play/rec]
 
   // buffer for fader data
   bool waitformsb;
@@ -841,27 +827,19 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnAux(char sel)
   { 
-    if (q_fkey) 
-    { 
+    char mode = 0;
+    if (m_chan) mode = 1;
+    else if (m_aux > 0) mode = 2;
+    
+    char qkey = 0;
+    if (q_shift) qkey = 1;
+    else if (q_fkey) qkey = 2;
 
-      /* The Emulate Keystroke stuff isn't really needed, 
-      better put some more custom actions here */
-
-      if (m_aux > 0) Main_OnCommand(cmd_aux_fkey[sel-1],0);    // Reascript: Aux-Mode - FKey - X
-      else if (m_chan) Main_OnCommand(cmd_chan_fkey[sel-1],0); // Reascript: Chan-Mode - FKey - X
-      else Main_OnCommand(cmd_pan_fkey[sel-1],0);              // Reascript: Pan-Mode - FKey - X
-
-    } else if (q_shift)
-    {
-      if (m_aux > 0) Main_OnCommand(cmd_aux_shift[sel-1],0);    // Reascript: Aux-Mode - Shift - X
-      else if (m_chan) Main_OnCommand(cmd_chan_shift[sel-1],0); // Reascript: Chan-Mode - Shift - X
-      else Main_OnCommand(cmd_pan_shift[sel-1],0);              // Reascript: Pan-Mode - Shift - X
-
-    } else
+    if (qkey == 0)
     {
       if (m_chan)
       {
-        switch(sel)                                             // Fix: channel strip actions
+        switch(sel)
         {
           case 1 : MySetSurface_Chan_SetFxParamOffset(1); break;
           case 2 : MySetSurface_Chan_SetFxParamOffset(-1); break;
@@ -869,10 +847,11 @@ class CSurf_US2400 : public IReaperControlSurface
           case 4 : MyCSurf_Chan_InsertFX(); break;
           case 5 : MyCSurf_Chan_DeleteFX(); break;
           case 6 : MyCSurf_Chan_ToggleArmFXEnv(); break;
-
         } 
-      } else MySetSurface_EnterAuxMode(sel);                    // Fix: enter Aux Mode
-    }
+
+      } else MySetSurface_EnterAuxMode(sel);  
+    
+    } else Main_OnCommand(cmd_ids[qkey][mode][sel-1], 0);
 
     MySetSurface_UpdateAuxButtons();
   } // OnAux()
@@ -895,6 +874,7 @@ class CSurf_US2400 : public IReaperControlSurface
     MySetSurface_ToggleFKey(btn_state);
   } // OnFKey()
 
+
   void OnShift(bool btn_state)
   {
     if ((btn_state && q_fkey) && (s_initdone))
@@ -910,41 +890,80 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnRew()
   {
-    if (q_fkey) MyCSurf_Undo();
-    else if (q_shift) MyCSurf_Auto_SetMode(0);
-    else MyCSurf_OnRew();
+    char mode = 0;
+    if (m_chan) mode = 1;
+    else if (m_aux > 0) mode = 2;
+    
+    char qkey = 0;
+    if (q_shift) qkey = 1;
+    else if (q_fkey) qkey = 2;
+
+    if ((qkey == 0) && (cmd_ids[0][mode][7] == -1)) CSurf_OnRew(1);
+    else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(0);
+    else Main_OnCommand(cmd_ids[qkey][mode][7], 0);
   } // OnRew()
 
 
   void OnFwd()
   {
-    if (q_fkey) MyCSurf_Redo();
-    else if (q_shift) MyCSurf_Auto_SetMode(1);
-    else MyCSurf_OnFwd();
+    char mode = 0;
+    if (m_chan) mode = 1;
+    else if (m_aux > 0) mode = 2;
+    
+    char qkey = 0;
+    if (q_shift) qkey = 1;
+    else if (q_fkey) qkey = 2;
+
+    if ((qkey == 0) && (cmd_ids[0][mode][8] == -1)) CSurf_OnFwd(1);
+    else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(1);
+    else Main_OnCommand(cmd_ids[qkey][mode][8], 0);
   } // OnFwd()
 
 
   void OnStop()
   {
-    if (q_fkey) MyCSurf_ToggleScrollOnPlay(); 
-    else if (q_shift) MyCSurf_Auto_SetMode(2); 
-    else CSurf_OnStop();   
+    char mode = 0;
+    if (m_chan) mode = 1;
+    else if (m_aux > 0) mode = 2;
+    
+    char qkey = 0;
+    if (q_shift) qkey = 1;
+    else if (q_fkey) qkey = 2;
+
+    if ((qkey == 0) && (cmd_ids[0][mode][9] == -1)) CSurf_OnStop();
+    else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(2);
+    else Main_OnCommand(cmd_ids[qkey][mode][9], 0);
   } // OnStop()
 
 
   void OnPlay()
   {
-    if (q_fkey) MyCSurf_Save(false);
-    else if (q_shift) MyCSurf_Auto_SetMode(3);
-    else CSurf_OnPlay();
+    char mode = 0;
+    if (m_chan) mode = 1;
+    else if (m_aux > 0) mode = 2;
+    
+    char qkey = 0;
+    if (q_shift) qkey = 1;
+    else if (q_fkey) qkey = 2;
+
+    if ((qkey == 0) && (cmd_ids[0][mode][10] == -1)) CSurf_OnPlay(); 
+    else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(3);
+    else Main_OnCommand(cmd_ids[qkey][mode][10], 0);
   } // OnPlay()
 
 
   void OnRec()
   {
-    if (q_fkey) MyCSurf_Save(true);
-    else if (q_shift) MyCSurf_Auto_WriteCurrValues();
-    else MyCSurf_OnRec();
+    char mode = 0;
+    if (m_chan) mode = 1;
+    else if (m_aux > 0) mode = 2;
+    
+    char qkey = 0;
+    if (q_shift) qkey = 1;
+    else if (q_fkey) qkey = 2;
+
+    if ((qkey == 0) && (cmd_ids[0][mode][11] == -1)) MyCSurf_OnRec();
+    else Main_OnCommand(cmd_ids[qkey][mode][11], 0);
   } // OnRec()
 
 
@@ -953,9 +972,17 @@ class CSurf_US2400 : public IReaperControlSurface
   void OnNull(bool btn_state)
   {
     if (btn_state) 
-      if (q_fkey) MyCSurf_CenterHScrollToPlay();
-      else if (q_shift) MyCSurf_VZoomToSelTracks();
-      else MyCSurf_ToggleHZoomToTimeSel();
+    {
+      char mode = 0;
+      if (m_chan) mode = 1;
+      else if (m_aux > 0) mode = 2;
+      
+      char qkey = 0;
+      if (q_shift) qkey = 1;
+      else if (q_fkey) qkey = 2;
+
+      Main_OnCommand(cmd_ids[qkey][mode][6], 0);
+    }
 
     MySetSurface_UpdateButton(0x6e, btn_state, false);
   } // OnNull()
@@ -978,11 +1005,7 @@ class CSurf_US2400 : public IReaperControlSurface
       if (m_chan)
       {
         if (q_fkey) MyCSurf_Chan_MoveFX(dir);
-        else if (q_shift)
-        {
-          if (dir > 0) MyCSurf_Chan_OpenFX(chan_fx);
-          else MyCSurf_Chan_CloseFX(chan_fx);
-        }
+        else if (q_shift) MySetSurface_ShiftBanks(dir, 24);
         else MyCSurf_Chan_SelectFX(chan_fx + dir);
 
       } else
@@ -1184,41 +1207,43 @@ class CSurf_US2400 : public IReaperControlSurface
   }
 
 
-  void Dsp_GetWinCoordsIni()
+  void Dsp_RetrieveCoords()
   {
-    ini_file = CreateFile(ini_path.Get(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    
-    if (ini_file != INVALID_HANDLE_VALUE) 
-    {
-      DWORD read;
+    if (HasExtState("US2400", "dsp_x")) dsp_x = atoi(GetExtState("US2400", "dsp_x"));
+    else dsp_x = -1;
 
-      ReadFile(ini_file, &dsp_x, sizeof(dsp_x), &read, NULL);
-      ReadFile(ini_file, &dsp_y, sizeof(dsp_y), &read, NULL);
-      ReadFile(ini_file, &dsp_width, sizeof(dsp_width), &read, NULL);
-      ReadFile(ini_file, &dsp_height, sizeof(dsp_height), &read, NULL);
-      ReadFile(ini_file, &dsp_open, sizeof(dsp_open), &read, NULL);
+    if (HasExtState("US2400", "dsp_y")) dsp_y = atoi(GetExtState("US2400", "dsp_y"));
+    else dsp_y = -1;
 
-      CloseHandle(ini_file);
-    } 
+    if (HasExtState("US2400", "dsp_height")) dsp_height = atoi(GetExtState("US2400", "dsp_height"));
+    else dsp_height = -1;
+
+    if (HasExtState("US2400", "dsp_width")) dsp_width = atoi(GetExtState("US2400", "dsp_width"));
+    else dsp_width = -1;    
+
+    if (HasExtState("US2400", "dsp_open")) dsp_open = atoi(GetExtState("US2400", "dsp_open"));
+    else dsp_open = 0;
   }
 
 
-  void Dsp_SaveWinCoordsIni()
+  void Dsp_SaveCoords()
   {
-    ini_file = CreateFile(ini_path.Get(), GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    char buffer[32];
     
-    if (ini_file != INVALID_HANDLE_VALUE)
-    {
-      DWORD written;
+    sprintf(buffer, "%d", dsp_x);
+    SetExtState("US2400", "dsp_x", buffer, true);
 
-      WriteFile(ini_file, &dsp_x, sizeof(dsp_x), &written, NULL);
-      WriteFile(ini_file, &dsp_y, sizeof(dsp_y), &written, NULL);
-      WriteFile(ini_file, &dsp_width, sizeof(dsp_width), &written, NULL);
-      WriteFile(ini_file, &dsp_height, sizeof(dsp_height), &written, NULL);
-      WriteFile(ini_file, &dsp_open, sizeof(dsp_open), &written, NULL);
+    sprintf(buffer, "%d", dsp_y);
+    SetExtState("US2400", "dsp_y", buffer, true);
 
-      CloseHandle(ini_file);
-    } 
+    sprintf(buffer, "%d", dsp_width);
+    SetExtState("US2400", "dsp_width", buffer, true);
+
+    sprintf(buffer, "%d", dsp_height);
+    SetExtState("US2400", "dsp_height", buffer, true);
+
+    sprintf(buffer, "%d", dsp_open);
+    SetExtState("US2400", "dsp_open", buffer, true);
   }
 
   ////// CONVERSION & HELPERS //////
@@ -1514,36 +1539,49 @@ class CSurf_US2400 : public IReaperControlSurface
   void Hlp_GetCustomCmdIds()
   {
     const char* name;
-    char index_string[3];
 
     // go through all custom commands and parse names to get cmd ids
     for (int cmd = 50000; cmd <= 65535; cmd++)
     {
       name = kbd_getTextFromCmd(cmd, NULL);
-      int index;
-    
+
       if (strstr(name, "US-2400"))
       {
-        for (int s = 0; s < 6; s++)
+        int qkey = -1;
+        int mode = -1;
+        int key = -1;
+
+        // find qualifier key
+        if (strstr(name, "Shift")) qkey = 1;
+        else if (strstr(name, "FKey")) qkey = 2;
+        else qkey = 0;
+
+        // find mode
+        if (strstr(name, "Pan-Mode")) mode = 0;
+        else if (strstr(name, "Chan-Mode")) mode = 1;
+        else if (strstr(name, "Aux-Mode")) mode = 2;
+
+        // find key
+        if (strstr(name, "Null")) key = 6;
+        else if (strstr(name, "Rew")) key = 7;
+        else if (strstr(name, "FFwd")) key = 8;
+        else if (strstr(name, "Stop")) key = 9;
+        else if (strstr(name, "Play")) key = 10;
+        else if (strstr(name, "Rec")) key = 11;
+        else
         {
-           sprintf(index_string, "- %d", s+1);
-           if (strstr(name, index_string)) index = s;
+          char index_string[3];
+          for (int s = 0; s < 6; s++)
+          {
+             sprintf(index_string, "- %d", s+1);
+             if (strstr(name, index_string)) key = s;
+          }
         }
 
-        if (strstr(name, "Aux-Mode"))
+        // save cmd id
+        if ((qkey != -1) && (mode != -1) && (key != -1))
         {
-          if (strstr(name, "FKey")) cmd_aux_fkey[index] = cmd;
-          else if (strstr(name, "Shift")) cmd_aux_shift[index] = cmd;
-        
-        } else if (strstr(name, "Pan-Mode"))
-        {
-          if (strstr(name, "FKey")) cmd_pan_fkey[index] = cmd;
-          else if (strstr(name, "Shift")) cmd_pan_shift[index] = cmd;
-
-        } else if (strstr(name, "Chan-Mode"))
-        {
-          if (strstr(name, "FKey")) cmd_chan_fkey[index] = cmd;
-          else if (strstr(name, "Shift")) cmd_chan_shift[index] = cmd;
+          cmd_ids[qkey][mode][key] = cmd;
         }
       }
     }
@@ -1587,16 +1625,11 @@ public:
     m_size = 0;
 
 
-    // cmd_ids
-    for (char i = 0; i < 6; i++)
-    {
-      cmd_aux_fkey[i] = -1;
-      cmd_aux_shift[i] = -1;
-      cmd_pan_fkey[i] = -1;
-      cmd_pan_shift[i] = -1;
-      cmd_chan_fkey[i] = -1;
-      cmd_chan_shift[i] = -1;
-    }
+    // reset cmd_ids
+    for (char qkey = 0; qkey < 3; qkey++)
+      for (char mode = 0; mode < 3; mode++)
+        for (char key = 0; key < 12; key++)
+          cmd_ids[qkey][mode][key] = -1;
 
     // for fader data
     waitformsb = false;
@@ -1712,7 +1745,7 @@ public:
 
   bool MySetSurface_Init() 
   {
-    Dsp_GetWinCoordsIni();
+    Dsp_RetrieveCoords();
 
     Hlp_GetCustomCmdIds();
     CSurf_ResetAllCachedVolPanStates(); 
@@ -1743,7 +1776,7 @@ public:
 
   bool MySetSurface_Exit()
   {
-    Dsp_SaveWinCoordsIni();
+    Dsp_SaveCoords();
 
     CSurf_ResetAllCachedVolPanStates();
 
@@ -2636,18 +2669,6 @@ public:
 
   // CUSTOM TRANSPORT 
 
-  void MyCSurf_OnRew()
-  {
-    Main_OnCommand(CMD_RJUMP, 0);
-  } // MyCSurf_OnRew
-
-
-  void MyCSurf_OnFwd()
-  {
-    Main_OnCommand(CMD_FJUMP, 0);
-  } // MyCSurf_OnFwd
-
-
   void MyCSurf_OnRec()
   {
     if (s_play) 
@@ -2887,7 +2908,6 @@ public:
     } 
 
     MySetSurface_UpdateAutoLEDs();
-
   } // MyCSurf_Auto_SetMode
 
 
@@ -2965,7 +2985,6 @@ public:
       // set time selection
       GetSet_LoopTimeRange(true, true, &start_time, &end_time, false);
     }
-
   } // MyCSurf_MoveTimeSel
 
 
@@ -3019,64 +3038,6 @@ public:
 
     SetEditCurPos2(rpr_pro, old_val + d_value, true, false);
   } // MyCSurf_MoveEditCursor
-
-
-  // CUSTOM COMMANDS FOR SCROLL AND ZOOM
-
-  void MyCSurf_ToggleScrollOnPlay()
-  {
-    Main_OnCommand(CMD_TGLPLAYSCROLL, 0);
-    Main_OnCommand(CMD_TGLRECSCROLL, 0);
-  } // MyCSurf_ToggleScrollOnPlay
-
-
-  void MyCSurf_CenterHScrollToPlay()
-  {
-    Main_OnCommand(CMD("_SWS_HSCROLLPLAY50"), 0);
-  } // MyCSurf_CenterHScrollToPlay
-
-
-  void MyCSurf_ToggleHZoomToTimeSel()
-  {
-    Main_OnCommand(CMD("_SWS_TOGZOOMTT"), 0);
-  } // MyCSurf_ToggleHZoomToTimeSel
-
-
-  void MyCSurf_VZoomToSelTracks()
-  {
-    Main_OnCommand(CMD("_SWS_VZOOMFIT"), 0);
-  } // MyCSurf_VZoomToSelTracks
-
-
-  // CUSTOM COMMANDS FOR FILE HANDLING
-
-  void MyCSurf_Undo()
-  {
-    Main_OnCommand(CMD_UNDO, 0);
-  } // MyCSurf_Undo
-
-
-  void MyCSurf_Redo()
-  {
-    Main_OnCommand(CMD_REDO, 0);
-  } // MyCSurf_Redo
-
-
-  void MyCSurf_Save(bool overwrite)
-  {
-    if (overwrite) Main_OnCommand(CMD_SAVE, 0);
-    else Main_OnCommand(CMD_SAVEAS, 0);
-  } // MyCSurf_Save
-
-
-  // WINDOW MESSAGES (EMULATE MOUSE AND KEYSTROKES FOR SOME ACTIONS)
-
-  void MyCSurf_EmulateKeyStroke(int key_id)
-  {
-    HWND top = GetForegroundWindow();
-    PostMessage(top, WM_KEYDOWN, key_id, 0);
-    PostMessage(top, WM_KEYUP, key_id, 0);
-  } // MyCSurf_EmulateKeyStroke
 
 
 

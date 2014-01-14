@@ -56,6 +56,10 @@ extern bool (*GetSetMediaTrackInfo_String)(MediaTrack* tr, const char* parmname,
 extern const char* (*GetResourcePath)();
 extern bool (*TrackFX_GetFormattedParamValue)(MediaTrack* track, int fx, int param, char* buf, int buflen);
 extern int (*GetTrackColor)(MediaTrack* track);
+extern bool (*HasExtState)(const char* section, const char* key);
+extern const char* (*GetExtState)(const char* section, const char* key);
+extern void (*SetExtState)(const char* section, const char* key, const char* value, bool persist);
+
 // ADDITIONS FOR US-2400 -- END
 
 /* 
