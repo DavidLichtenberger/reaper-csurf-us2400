@@ -227,19 +227,21 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 
 ### Transport
 
-* **Default – Rew / FFwd:** Move play cursor to next marker or other point of interest (use Jog Wheel for other adjustments) – *Remove the ReaScripts to enable default actions* 
-* **Default – Stop / Play / Record:** Stop, Play, Record
-* **Shift – Rew / FFwd / Stop / Play:** Set automation mode (Off / Trim, Read, Latch, Write) for selected tracks. The diodes above blink accordingly, if there are tracks with different modes, more than one will blink. 
-* **Shift – Rec:** Write current automation values of envelopes in Write / Latch Mode to the complete time selection. 
+All transport actions can be customized by altering, adding or removing the according ReaScripts. 
+
+The Default and Shift actions of all buttons have hardcoded actions that get overriden if there are ReaScripts (e.g. those in the ‘Unassigned’ folder) or assigned when the ReaScripts are removed.
+
+The F-Key actions are ReaScript with no hardcoded fallback.
+
+* **Default – Rew / FFwd:** Move play cursor to next marker or other point of interest (use Jog Wheel for other adjustments) – *these are ReaScripts: remove them to enable default behaviour*.
+* **Default – Stop / Play / Record:** Stop, Play, Record – *default behaviour, add ReaScripts to change*.
+* **Shift – Rew / FFwd / Stop / Play:** Set automation mode (Off / Trim, Read, Latch, Write) for selected tracks. The diodes above blink accordingly, if there are tracks with different modes, more than one will blink – *default behaviour, add ReaScripts to change*.
+* **Shift – Rec:** Write current automation values of envelopes in Write / Latch Mode to the complete time selection – *default behaviour, add ReaScripts to change*.
 * **F-Key – Rew:** Undo
 * **F-Key – FFwd:** Redo
 * **F-Key – Stop:** Scroll with playback
 * **F-Key – Play:** Save project with dialog (Save as)
 * **F-Key – Rec:** Save project (Overwrite)
-
-All transport actions can be customized by altering, adding or removing the according ReaScripts. 
-
-The Default and Shift actions of all buttons have hardcoded actions that get overriden if there are ReaScripts (e.g. those in the ‘Unassigned’ folder) or assigned when the ReaScripts are removed.
 
 ## Notes
 
