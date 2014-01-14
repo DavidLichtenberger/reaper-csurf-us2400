@@ -52,7 +52,7 @@ Or you can use the **Scribble Strip Window**.
 
 Hitting **F-Key and Shift** together opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
 
-Still not better than if the US-2400 had a display, but it sure helps:
+Still not better than if the US-2400 had a display, but it sure helps.
 
 Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View"), 
 [Channel Strip View (Chan Mode)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
@@ -265,16 +265,4 @@ The F-Key actions are ReaScript with no hardcoded fallback.
 
 *   There is a meter mode (where the encoder rings emulate VU meters) that works when you use the US-2400 as a fake MCU, but I didn’t really try to implement it in this extension ... I must admit, I don’t really see the use – after all it’s only 15 diodes per encoder?
 
-*   <del>As of now, to avoid swamping the US-2400 faders/encoders with MIDI updates (especially in auto read mode), the extension doesn’t use the volume/pan ‘events’ of the API (there are none existing for FX param updates anyway, AFAIK). Instead it queries values and then updates faders/encoders in the central event loop (‘run’ function). This fixes the problem but also slows down response. Maybe this is just a temporary fix?</del>
-
-    √ *This is now as good as it can be. It still uses the run loop but has a cleverer way (and a cache) to find out which faders must be updated, so as many updates as possible find their way to the faders. I tested it against the fake MCU setup and didn’t find it to be much slower anymore.*
-
-    *BTW, the new version also compensates for higher CSurf update rates (it’s in the Preferences, default 15 Hz), so you can tweak that without fearing it might fall apart. Although I played around with it and didn’t find it to make a big difference – even in MCU mode, which (theoretically, technically) should have a higher limit, because it employs three MIDI connections instead of one. I guess the motors of the faders have their limit, too.*
-
-*   <del>Maybe there is a way to make the US-2400 CSurf a module of it’s own so one doesn’t have to overwrite the reaper_csurf.dll?</del>
-
-    √ *Turns out this is even easier done than said ;-)*
-
-*   <del>It would be cool to be able to assign custom actions to the ‘action buttons’ (like Shift-/FKey-Aux) but as of now I don’t really know how to do it.</del>
-
-    √ *Done.*   
+*   When I have some time, I'll update the ‘Issues’ section with known bugs and stuff. As of now it's nothing major.
