@@ -26,7 +26,7 @@
 
 *   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me! *I found a nice hack for this: hitting the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
 
-    For the default function set, don't import the ones in the ‘Unassigned’-folder (you can use those if you wish to override the default actions). See below for implementing custom actions.
+    For the default function set, don’t import the ones in the ‘Unassigned’-folder (you can use those if you wish to override the default actions). See below for implementing custom actions.
 
 *   Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
 
@@ -34,7 +34,7 @@
 
 *   Delete reaper_csurf_us2400.dll
 
-*   If you want, remove the scripts and uninstall Python, but you don't have to.
+*   If you want, remove the scripts and uninstall Python, but you don’t have to.
 
 That’s about it.
 
@@ -78,7 +78,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 * **Default:** FX parameter
 * **Flip:** Volume
 * **F-Key:** FX parameter: fine 
-* **Shift:** FX parameter: toggle / coarse – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry. There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you're lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I'm saying 'should' because I haven't found a plug in to test this with yet.
+* **Shift:** FX parameter: toggle / coarse – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry. There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you’re lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I’m saying ‘should’ because I haven’t found a plug in to test this with yet.*
 
 ### Faders
 
@@ -265,4 +265,4 @@ The F-Key actions are ReaScript with no hardcoded fallback.
 
 *   There is a meter mode (where the encoder rings emulate VU meters) that works when you use the US-2400 as a fake MCU, but I didn’t really try to implement it in this extension ... I must admit, I don’t really see the use – after all it’s only 15 diodes per encoder?
 
-*   When I have some time, I'll update the ‘Issues’ section with known bugs and stuff. As of now it's nothing major.
+*   When I have some time, I’ll update the ‘Issues’ section with known bugs and stuff. As of now it’s nothing major.
