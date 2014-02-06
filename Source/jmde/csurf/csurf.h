@@ -59,7 +59,8 @@ extern int (*GetTrackColor)(MediaTrack* track);
 extern bool (*HasExtState)(const char* section, const char* key);
 extern const char* (*GetExtState)(const char* section, const char* key);
 extern void (*SetExtState)(const char* section, const char* key, const char* value, bool persist);
-
+extern void (*Undo_BeginBlock)();
+extern void (*Undo_EndBlock)(const char* descchange, int extraflags);
 // ADDITIONS FOR US-2400 -- END
 
 /* 

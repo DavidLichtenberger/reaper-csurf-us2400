@@ -86,8 +86,10 @@ int dsp_open = 0;
 
 WDL_String dsp_strings[48];
 int dsp_colors[24];
-unsigned long dsp_touch = 0;
-unsigned long dsp_touch_prev = 0;
+unsigned long dsp_enc_touch = 0;
+unsigned long dsp_enc_touch_prev = 0;
+unsigned long dsp_fdr_touch = 0;
+unsigned long dsp_fdr_touch_prev = 0;
 unsigned long dsp_sel = 0;
 unsigned long dsp_rec = 0;
 unsigned long dsp_mute = 0;
@@ -165,7 +167,7 @@ void Dsp_Paint(HWND hwnd)
 
     // draw text A
     SetTextColor(hdc, RGB(150, 150, 150));
-    if ( (dsp_sel & (1 << ch)) || ((dsp_chan) && (dsp_touch & (1 << ch))) )
+    if ( (!dsp_chan && (dsp_sel & (1 << ch))) || ((dsp_chan) && (dsp_enc_touch & (1 << ch))) )
       SetTextColor(hdc, RGB(250, 250, 250));
     else if ( !dsp_chan && (dsp_rec & (1 << ch)) )
       SetTextColor(hdc, RGB(250, 60, 60));
@@ -178,7 +180,7 @@ void Dsp_Paint(HWND hwnd)
     rect.top = F2I(single_height);
     rect.bottom = F2I(single_height + touch_height);
 
-    if ((dsp_touch & (1 << ch)) != 0)
+    if ( ((dsp_fdr_touch & (1 << ch)) != 0) || ((dsp_enc_touch & (1 << ch)) != 0) )
     {
       FillRect(hdc, &rect, touch_bg);
     
@@ -312,7 +314,9 @@ class CSurf_US2400 : public IReaperControlSurface
   unsigned long cache_upd_faders;
   unsigned long cache_upd_enc;
   char cache_exec;
-    
+  bool master_sel;
+  bool insert_fx_hook;
+
   // general states
   int s_ch_offset; // bank up/down
   bool s_play, s_rec, s_loop; // play states
@@ -481,14 +485,15 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnTrackSel(char ch_id)
   {
-    if (m_chan) MySetSurface_Chan_SelectTrack(ch_id, false);
-    else {
-      MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
-
+    MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
+    if (ch_id < 24)
+    {
       if (q_fkey) MyCSurf_SwitchPhase(rpr_tk);
       else if (q_shift) CSurf_OnRecArmChange(rpr_tk, -1);
+      else if (m_chan) MySetSurface_Chan_SelectTrack(ch_id, false);
       else CSurf_OnSelectedChange(rpr_tk, -1);
-    }
+    
+    } else if (ch_id == 24) OnMasterSel();
   } // OnTrackSel
 
 
@@ -521,6 +526,8 @@ class CSurf_US2400 : public IReaperControlSurface
     {
       s_touch_fdr = s_touch_fdr & (~(1 << ch_id));
     }
+    
+    Dsp_Update(ch_id);
   } // OnFaderTouch
 
 
@@ -582,8 +589,6 @@ class CSurf_US2400 : public IReaperControlSurface
             else d_value = Cnv_FaderToFXParam(min, max, value);
             MyCSurf_Chan_SetFXParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, d_value);
 
-            Dsp_Update(ch_id);
-
           } else if (m_aux > 0) 
           { // flip + aux -> send Vol
 
@@ -629,6 +634,7 @@ class CSurf_US2400 : public IReaperControlSurface
       } // if (ismaster), else if (isactive)
     } // if (exists)
 
+    Dsp_Update(ch_id);
     MySetSurface_UpdateFader(ch_id);
   } // OnFaderChange()
 
@@ -697,35 +703,49 @@ class CSurf_US2400 : public IReaperControlSurface
         if (m_chan)
         { // chan -> fx_param (para_offset checked above)
 
-          double min, max, step; //, fine, coarse;
+          double min, max, step, fine, coarse; 
+          bool toggle;
+          bool has_steps = false;
           d_value = TrackFX_GetParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, &min, &max);
           
-          /* at the moment TrackFX_GetParameterStepSizes always fails!
-          if (TrackFX_GetParameterStepSizes(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, &step, &fine, &coarse, &toggle)
+          // most of the time this fails because not implemented by plugins!
+          if ( ( TrackFX_GetParameterStepSizes(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, &step, &fine, &coarse, &toggle) ) )
           {
             if (toggle)
             {
+              has_steps = true;
+              
               if (rel_value > 0) d_value = 1.0;
               else d_value = 0.0;
-         
-            } else
+            
+            } else if (step != 0)
             {
-              if (q_fkey) step = fine;
-              else if (q_shift) step = coarse;
-              d_value = Cnv_EncoderToFXParam(d_value, min, max, step, rel_value);
+              has_steps = true;
+            
+              if (q_fkey)
+              {
+                if (fine != 0) step = fine;
+                else step = step / 10.0;
+
+              } else if (q_shift)
+              {
+                if (coarse != 0) step = coarse;
+                else step = step * 10.0;
+              }
             }
+          } 
+          
+          // this is the workaround
+          if (!has_steps)
+          {
+            step = 1/(double)ENCRESFX;
+            if (q_fkey) step = 1/(double)ENCRESFXFINE;
+            else if (q_shift) step = 1/(double)ENCRESFXTOGGLE;
           }
-          */
-          // this is the temporary workaround
-          step = (double)ENCRESFX;
-          if (q_fkey) step = (double)ENCRESFXFINE;
-          else if (q_shift) step = (double)ENCRESFXTOGGLE;
 
           d_value = Cnv_EncoderToFXParam(d_value, min, max, step, rel_value);
           MyCSurf_Chan_SetFXParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, d_value);
        
-          Dsp_Update(ch_id);
-
         } else if (m_aux > 0)
         {
           int send_id = Cnv_AuxIDToSendID(ch_id, m_aux);
@@ -772,6 +792,7 @@ class CSurf_US2400 : public IReaperControlSurface
       } // if (m_flip), else
 
       MySetSurface_UpdateEncoder(ch_id); // because touched track doesn't get updated
+      Dsp_Update(ch_id);
 
       s_touch_enc[ch_id] = ENCTCHDLY;
 
@@ -783,12 +804,13 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnMasterSel()
   {
-    if (m_chan) 
+    if (q_fkey)
     {
-      MySetSurface_Chan_SelectTrack(24, false);
+      MyCSurf_SelectMaster();
+
     } else
     {
-      if (q_fkey) MyCSurf_SelectMaster();
+      if (m_chan) MySetSurface_Chan_SelectTrack(24, false);
       else MyCSurf_ToggleSelectAllTracks();
     }
   } // OnMasterSel()
@@ -1092,7 +1114,7 @@ class CSurf_US2400 : public IReaperControlSurface
         dsp_y = scr.bottom - dsp_height;
       }
              
-      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, dsp_x, dsp_y, dsp_width, dsp_height, NULL, NULL, g_hInst, NULL);
+      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP | WS_DISABLED, dsp_x, dsp_y, dsp_width, dsp_height, NULL, NULL, g_hInst, NULL);
     }
 
     for (int ch = 0; ch < 24; ch++) Dsp_Update(ch);
@@ -1123,83 +1145,99 @@ class CSurf_US2400 : public IReaperControlSurface
       MediaTrack* tk;
       int tk_num, fx_amount;
       char buffer[64];
+      WDL_String tk_name;
+      WDL_String tk_num_c;
+      WDL_String par_name;
+      WDL_String par_val;    
       bool sel = false;
       bool rec = false;
       bool muted = false;
 
-      if (m_chan)
+      // get info
+
+      tk = Cnv_ChannelIDToMediaTrack(ch);
+      if (tk != NULL) 
       {
-        dsp_colors[ch] = 0;
-        dsp_chan = true;
+        // track number
+        tk_num = (int)GetMediaTrackInfo_Value(tk, "IP_TRACKNUMBER");
+        sprintf(buffer, "%d", tk_num);
+        tk_num_c = WDL_String(buffer);
 
-        fx_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
-        if (ch + chan_par_offs < fx_amount)
-        {
-          // fx param value
-          TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer,64);
-          if (strlen(buffer) == 0)
-          {
-            double min, max;
-            double par = TrackFX_GetParam(chan_rpr_tk, chan_fx, ch + chan_par_offs, &min, &max);
-            sprintf(buffer, "%.4f", par);
-          }
-          dsp_strings[ch] = WDL_String(buffer);
+        // track name
+        GetSetMediaTrackInfo_String(tk, "P_NAME", buffer, false);
+        buffer[64] = '\0';
+        tk_name = WDL_String(buffer);
+      
+        // track mute, selected, rec arm
+        int flags;
+        GetTrackState(tk, &flags);
 
-          // fx param name
-          TrackFX_GetParamName(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);
-          dsp_strings[ch + 24] = WDL_String(buffer);
+        // muted
+        if ( (bool)(flags & 8) ) dsp_mute = dsp_mute | (1 << ch);
+        else dsp_mute = dsp_mute & (~(1 << ch));
 
-        } else 
-        {
-          dsp_strings[ch] = "";
-          dsp_strings[ch + 24] = "";
-        }
+        // selected
+        if ( (bool)(flags & 2) ) dsp_sel = dsp_sel | (1 << ch);
+        else dsp_sel = dsp_sel & (~(1 << ch));
+
+        // armed
+        if ( (bool)(flags & 64) ) dsp_rec = dsp_rec | (1 << ch);
+        else dsp_rec = dsp_rec & (~(1 << ch));
 
       } else
       {
-        dsp_chan = false;
+        tk_num_c = "";
+        tk_name = "";
+        dsp_colors[ch] = 0;
+        dsp_mute = dsp_mute & (~(1 << ch));
+        dsp_sel = dsp_sel & (~(1 << ch));
+        dsp_rec = dsp_rec & (~(1 << ch));
+      }
 
-        tk = Cnv_ChannelIDToMediaTrack(ch);
-        if (tk != NULL) 
+
+      fx_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
+      if (ch + chan_par_offs < fx_amount)
+      {
+        // fx param value
+        TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);
+        if (strlen(buffer) == 0)
         {
-          // track number
-          tk_num = (int)GetMediaTrackInfo_Value(tk, "IP_TRACKNUMBER");
-          sprintf(buffer, "%d", tk_num);
-          dsp_strings[ch] = WDL_String(buffer);
+          double min, max;
+          double par = TrackFX_GetParam(chan_rpr_tk, chan_fx, ch + chan_par_offs, &min, &max);
+          sprintf(buffer, "%.4f", par);
+        }
+        par_val = WDL_String(buffer);
 
-          // track name
-          GetSetMediaTrackInfo_String(tk, "P_NAME", buffer, false);
-          buffer[64] = '\0';
-          dsp_strings[ch + 24] = WDL_String(buffer);
+        // fx param name
+        TrackFX_GetParamName(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);
+        par_name = WDL_String(buffer);
 
-          // track mute, selected, rec arm
-          int flags;
-          GetTrackState(tk, &flags);
+      } else
+      {
+        par_val = "";
+        par_name = "";
+      }
 
-          // muted
-          if ( (bool)(flags & 8) ) dsp_mute = dsp_mute | (1 << ch);
-          else dsp_mute = dsp_mute & (~(1 << ch));
+      // transmit
 
-          // selected
-          if ( (bool)(flags & 2) ) dsp_sel = dsp_sel | (1 << ch);
-          else dsp_sel = dsp_sel & (~(1 << ch));
+      dsp_chan = false;
+      dsp_colors[ch] = GetTrackColor(tk);
+      dsp_strings[ch + 24] = tk_name;
+      dsp_strings[ch] = tk_num_c;
 
-          // armed
-          if ( (bool)(flags & 64) ) dsp_rec = dsp_rec | (1 << ch);
-          else dsp_rec = dsp_rec & (~(1 << ch));
-
-          // track color
-          dsp_colors[ch] = GetTrackColor(tk);
-
-        } else 
+      if (m_chan)
+      {
+        dsp_chan = true;
+        dsp_strings[ch] = WDL_String(par_val);
+        
+        if ( ( !m_flip && ((s_touch_fdr & (1 << ch)) == 0) ) || ( m_flip && (s_touch_enc[ch] == 0) ) )
         {
-          dsp_strings[ch] = "";
-          dsp_strings[ch + 24] = "";
           dsp_colors[ch] = 0;
-          dsp_sel = dsp_sel & (~(1 << ch));
+          dsp_strings[ch + 24] = par_name;
         }
       }
 
+      // keep only alphanumeric, replace everything else with space
       dsp_strings[ch + 24] = Hlp_Alphanumeric(dsp_strings[ch + 24]);
 
       dsp_repaint = true;
@@ -1452,7 +1490,7 @@ class CSurf_US2400 : public IReaperControlSurface
     */
 
     // for now:
-    double d_rel = (double)rel_val * (max - min) / step;
+    double d_rel = (double)rel_val * (max - min) * step;
 
     double new_val = old_val + d_rel;
 
@@ -1588,6 +1626,26 @@ class CSurf_US2400 : public IReaperControlSurface
   } // Hlp_GetCustomCmdIds
 
 
+  void Hlp_CheckFXInsert()
+  {
+    // this gets set to true by InsertFX so we know the dialog has been open
+    if (insert_fx_hook)
+    {
+      // InsertFX auto increments chan_fx -> if dialog has been cancelled, this points to nothing
+      if (chan_fx >= TrackFX_GetCount(chan_rpr_tk)) chan_fx = TrackFX_GetCount(chan_rpr_tk) - 1;
+    
+      // update display and encoders / faders
+      for (int ch = 0; ch < 24; ch++)
+      {
+        Dsp_Update(ch);
+        if (!m_flip) MySetSurface_UpdateEncoder(ch);
+        else MySetSurface_UpdateFader(ch);
+      }
+    }
+
+    insert_fx_hook = false;
+  } // Hlp_CheckFXInsert
+
   WDL_String Hlp_Alphanumeric(WDL_String in_str)
   {
     char* str_buf = in_str.Get();
@@ -1658,7 +1716,9 @@ public:
     cache_upd_faders = 0;
     cache_upd_enc = 0;
     cache_exec = 0;
-      
+    master_sel = false;
+    insert_fx_hook = false;
+
     // general states
     s_ch_offset = 0; // bank up/down
     s_play = false; // playstates
@@ -2026,7 +2086,7 @@ public:
     { 
       para_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
       if (chan_par_offs + ch_id >= para_amount) isactive = false;
-      else isactive = true; // chan + fip: is track doesn't matter
+      else isactive = true; // chan + !flip: is track doesn't matter
 
     } else if (m_aux > 0) 
     { // only aux #x: has send #x?
@@ -2174,6 +2234,8 @@ public:
 
   void MySetSurface_ToggleFlip()
   {
+    Hlp_CheckFXInsert();
+
     m_flip = !m_flip;
 
     CSurf_ResetAllCachedVolPanStates();
@@ -2214,6 +2276,8 @@ public:
 
   void MySetSurface_Chan_SetFxParamOffset(char dir)
   {
+    Hlp_CheckFXInsert();
+
     chan_par_offs -= 24 * dir;
     if (chan_par_offs < 0) chan_par_offs = 0;
 
@@ -2222,7 +2286,7 @@ public:
     if (chan_par_offs >= amount_paras) chan_par_offs -= 24;
     
     // update encoders or faders and scribble strip
-    for (char ch_id = 0; ch_id < 23; ch_id++) 
+    for (char ch_id = 0; ch_id <= 23; ch_id++) 
     {
       if (m_flip) MySetSurface_UpdateFader(ch_id);
       else MySetSurface_UpdateEncoder(ch_id);
@@ -2257,38 +2321,35 @@ public:
       for (int enc = 0; enc < 24; enc++)
         if (dsp_hwnd != NULL) Dsp_Update(enc);
 
-    } else MySetSurface_ExitChanMode();
+    }
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
   } // MySetSurface_Chan_SelectTrack
 
 
   void MySetSurface_ShiftBanks(char dir, char factor)
   { 
-
     double track_amount = (double)CountTracks(0);
-    int max_offset = (int)( ceil( (track_amount) / (double)factor ) - (24.0 / double(factor)));
-    max_offset *= factor;
 
     int old_ch_offset = s_ch_offset;
 
     // move in dir by 8 or 24 (factor)
-    s_ch_offset += factor * dir;
-    s_ch_offset -= (s_ch_offset % factor);
+    int oct_steps = (s_ch_offset / 8);
+    if (s_ch_offset % 8 != 0) oct_steps++;
+    oct_steps += dir * factor / 8;
+    s_ch_offset = oct_steps * 8;
 
     // min / max
-    if (s_ch_offset > max_offset) s_ch_offset = max_offset;
+    if (s_ch_offset > (CSurf_NumTracks(true) - 24)) s_ch_offset = CSurf_NumTracks(true) - 24;
     if (s_ch_offset > 168) s_ch_offset = 168;
     if (s_ch_offset < 0) s_ch_offset = 0;
-
-    // if correction pushes in wrong direction keep old
-    if ( (dir > 0) && (old_ch_offset > s_ch_offset) ) s_ch_offset = old_ch_offset;
-    if ( (dir < 0) && (old_ch_offset < s_ch_offset) ) s_ch_offset = old_ch_offset;
 
     // update channel strip
     if (m_chan) chan_ch = chan_ch + old_ch_offset - s_ch_offset;
 
     // update mixer display
-    MediaTrack* leftmost = GetTrack(0, s_ch_offset);
-    SetMixerScroll(leftmost);
+    SetMixerScroll(Cnv_ChannelIDToMediaTrack(0));
 
     // update encoders, faders, track buttons, scribble strip
     for(char ch_id = 0; ch_id < 24; ch_id++)
@@ -2301,8 +2362,6 @@ public:
     }
 
     MySetSurface_UpdateBankLEDs();
-
-    
   } // MySetSurface_ShiftBanks
 
 
@@ -2334,12 +2393,17 @@ public:
     // update scribble strip
     for (int enc = 0; enc < 24; enc++)
       if (dsp_hwnd != NULL) Dsp_Update(enc);
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
   } // MySetSurface_EnterChanMode
 
 
   void MySetSurface_ExitChanMode()
   {
     m_chan = false;
+
+    // reset chan button
     MySetSurface_UpdateButton(0x64, false, false);
 
     // reset select button
@@ -2361,6 +2425,9 @@ public:
     // update scribble strip
     for (int enc = 0; enc < 24; enc++)
       if (dsp_hwnd != NULL) Dsp_Update(enc);
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
   } // MySetSurface_ExitChanMode
 
 
@@ -2474,7 +2541,6 @@ public:
     if ( (ch_id >= 0) && (ch_id <= 24) ) 
     {
       MySetSurface_UpdateButton(4 * ch_id + 1, selected, false);
-      if (selected) Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
       Dsp_Update(ch_id);
     }
   } // SetSurfaceSelected
@@ -2641,8 +2707,7 @@ public:
   {
     MediaTrack* rpr_master = Cnv_ChannelIDToMediaTrack(24);
 
-    //bool master_sel = (bool)GetMediaTrackInfo_Value(rpr_master, "I_SELECTED");
-    bool master_sel = IsTrackSelected(rpr_master);
+    master_sel = IsTrackSelected(rpr_master);
     master_sel = !master_sel;
     CSurf_OnSelectedChange(rpr_master, (int)master_sel); // ?
     SetTrackSelected(rpr_master, master_sel); // ?
@@ -2657,13 +2722,22 @@ public:
 
     bool sel = false;
     MediaTrack* tk;
-    if (sel_tks == 0) sel = true;
 
+    // no track selected, master also not selected?
+    if ( (sel_tks == 0) && ( !IsTrackSelected( Cnv_ChannelIDToMediaTrack(24) ) ) ) sel = true;
+
+    // set tracks sel or unsel
     for (int i = 0; i < all_tks; i++)
     {
       tk = GetTrack(0, i);
       SetTrackSelected(tk, sel);
     }
+
+    // apply to master also
+    MediaTrack* rpr_master = Cnv_ChannelIDToMediaTrack(24);
+    SetTrackSelected(rpr_master, sel); 
+    master_sel = sel;
+
   } // MyCSurf_ToggleSelectAllTracks() 
 
 
@@ -2712,6 +2786,9 @@ public:
 
     for (int enc = 0; enc < 24; enc++)
       if (dsp_hwnd != NULL) Dsp_Update(enc);
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
   } // MyCSurf_Chan_OpenFX
   
 
@@ -2719,11 +2796,19 @@ public:
   {
     TrackFX_Show(chan_rpr_tk, fx_id, 2); // hide floating window
     TrackFX_Show(chan_rpr_tk, fx_id, 0); // hide chain window
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
   } // MyCSurf_Chan_CloseFX
 
 
   void MyCSurf_Chan_DeleteFX()
   {
+    Hlp_CheckFXInsert();
+
+    Undo_BeginBlock();
+
+    // count fx
     int before_del = TrackFX_GetCount(chan_rpr_tk);
 
     //isolate track for action
@@ -2742,11 +2827,19 @@ public:
       chan_fx--;
       MyCSurf_Chan_OpenFX(chan_fx);
     }
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false);
+
+    Undo_EndBlock("Delete FX", 0);
   } // MyCSurf_Chan_DeleteFX
 
 
   void MyCSurf_Chan_InsertFX()
   {
+    Hlp_CheckFXInsert();
+
+    insert_fx_hook = true;
     // isolate track for action
     Hlp_SaveSelection();
     SetOnlyTrackSelected(chan_rpr_tk);
@@ -2762,11 +2855,17 @@ public:
     int amount_fx = TrackFX_GetCount(chan_rpr_tk);
     chan_fx++;
     if (chan_fx > amount_fx) chan_fx = amount_fx;
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
+
   } // MyCSurf_Chan_InsertFX
 
 
   void MyCSurf_Chan_MoveFX(char dir)
   {
+    Undo_BeginBlock();
+
     int amount_fx = TrackFX_GetCount(chan_rpr_tk);
 
     // isolate track for selection
@@ -2787,6 +2886,11 @@ public:
     }
 
     Hlp_RestoreSelection();
+
+    // bugfix: deselect master
+    if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
+
+    Undo_EndBlock("Move FX", 0);
   } // MyCSurf_Chan_MoveFX
 
 
@@ -2805,6 +2909,8 @@ public:
 
   void MyCSurf_Chan_ToggleFXBypass()
   {
+    Hlp_CheckFXInsert();
+
     bool bypass = (bool)TrackFX_GetEnabled(chan_rpr_tk, chan_fx);
     bypass = !bypass;
     TrackFX_SetEnabled(chan_rpr_tk, chan_fx, bypass);
@@ -2814,6 +2920,8 @@ public:
 
   void MyCSurf_Chan_SetFXParam(MediaTrack* rpr_tk, int fx_id, int para_id, double value)
   {
+    Hlp_CheckFXInsert();
+
     char ch_id = Cnv_MediaTrackToChannelID(rpr_tk);
 
     TrackFX_SetParam(rpr_tk, fx_id, para_id, value);
@@ -3132,7 +3240,7 @@ public:
 
       // blink Master if anything selected
       MediaTrack* master = Cnv_ChannelIDToMediaTrack(24);
-      bool on = ( ((CountSelectedTracks(0) > 0) && s_myblink) != IsTrackSelected(master) );
+      bool on = ( ( ( (CountSelectedTracks(0) > 0) || IsTrackSelected(master) ) && s_myblink ) != IsTrackSelected(master) );
       MySetSurface_UpdateButton(97, on, false);
 
       // Update automation modes
@@ -3147,18 +3255,27 @@ public:
     // update Display
     if (dsp_hwnd != NULL) 
     {
-      dsp_touch = 0;
-      for (char ch = 0; ch < 24; ch++)
-        if (s_touch_enc[ch] > 0) dsp_touch = dsp_touch | (1 << ch);
-      dsp_touch = dsp_touch | s_touch_fdr;
 
-      if ((dsp_touch != dsp_touch_prev) || (dsp_repaint))
+      dsp_fdr_touch = s_touch_fdr;
+      dsp_enc_touch = 0;      
+      for (char ch = 0; ch < 24; ch++)
+      {
+        if (m_chan && (s_touch_enc[ch] > 0)) dsp_enc_touch = dsp_enc_touch | (1 << ch);
+       
+        if ( (dsp_enc_touch & (1 << ch)) != (dsp_enc_touch_prev & (1 << ch)) 
+          || (dsp_fdr_touch & (1 << ch)) != (dsp_fdr_touch_prev & (1 << ch)) )
+            Dsp_Update(ch);
+      }
+      
+      dsp_enc_touch_prev = dsp_enc_touch;
+      dsp_fdr_touch_prev = dsp_fdr_touch;
+
+      if (dsp_repaint)
       {
         InvalidateRect(dsp_hwnd, NULL, true);
         UpdateWindow(dsp_hwnd);
+        dsp_repaint = false;
       }
-      dsp_touch_prev = dsp_touch;
-      dsp_repaint = false;
     }
 
     // init

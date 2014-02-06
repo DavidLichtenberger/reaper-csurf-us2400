@@ -78,7 +78,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 * **Default:** FX parameter
 * **Flip:** Volume
 * **F-Key:** FX parameter: fine 
-* **Shift:** FX parameter: toggle – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry.*
+* **Shift:** FX parameter: toggle / coarse – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry. There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you're lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I'm saying 'should' because I haven't found a plug in to test this with yet.
 
 ### Faders
 

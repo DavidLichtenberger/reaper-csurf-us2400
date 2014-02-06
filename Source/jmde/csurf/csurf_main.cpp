@@ -63,6 +63,8 @@ int (*GetTrackColor)(MediaTrack* track);
 bool (*HasExtState)(const char* section, const char* key);
 const char* (*GetExtState)(const char* section, const char* key);
 void (*SetExtState)(const char* section, const char* key, const char* value, bool persist);
+void (*Undo_BeginBlock)();
+void (*Undo_EndBlock)(const char* descchange, int extraflags);
 
 // ADDITIONS FOR US-2400 -- END
 
@@ -233,7 +235,8 @@ REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(REAPER_PLUGIN_HINSTANCE hI
   IMPAPI(HasExtState)
   IMPAPI(GetExtState)
   IMPAPI(SetExtState)
-
+  IMPAPI(Undo_BeginBlock)
+  IMPAPI(Undo_EndBlock)
 
 
   IMPAPI(DB2SLIDER)

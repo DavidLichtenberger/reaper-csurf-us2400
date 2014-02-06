@@ -43,6 +43,11 @@ if (RPR_CountSelectedTracks(0) > 0):
 	cmd_id = RPR_NamedCommandLookup("_SWSTL_TOGMCP")
 	RPR_Main_OnCommand(cmd_id, 0)
 
+	# deselect all
+	for i in range(0, RPR_CountSelectedTracks(0)):
+		tk = RPR_GetSelectedTrack(0, i)
+		RPR_SetTrackSelected(tk, False)
+
 	# reselect folders
 	for track in folders:
 		RPR_SetTrackSelected(track, True)
