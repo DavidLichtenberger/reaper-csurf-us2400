@@ -1,19 +1,19 @@
 # Tascam US-2400 Control Surface Extension for Cockos Reaper
 
 ###### Contents
-**Disclaimer**
-**Needs**
-**Install**
-**Uninstall**
-**Features**
-Hardcoded Functions
-Aux Mode
-Channel Strip Mode
-Custom Actions
-M-Key or Meter Mode
-Scribble Strip Window
-On-Screen-Help
-**Notes**
+* [Disclaimer](#disclaimer)
+* [Needs](#needs)
+* [Install](#install)
+* [Uninstall](#uninstall)
+* [Features](#features)
+	* [Hardcoded Functions](#hardcoded-functions)
+	* [Aux Mode](#aux-mode)
+	* [Channel Strip Mode](#channel-strip-mode)
+	* [Custom Actions](#custom-actions)
+	* [M-Key or Meter Mode](#m-key-or-meter-mode)
+	* [Scribble Strip Window](scrobble-strip-window)
+	* [On-Screen-Help](#on-screen-help)
+* [Notes](#notes)
 
 ## Disclaimer
 
