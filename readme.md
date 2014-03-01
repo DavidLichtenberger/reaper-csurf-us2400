@@ -116,7 +116,9 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 **Aux**						| Select track 		| Remove Aux Send\*\*\*| Add Aux Send\*\*\*
 
 _\* Indicated by the light below the encoders glowing blinking_
+
 _\*\* Indicated by the light below the encoders glowing steady_
+
 _\*\*\* Attention users of previous versions: This is new – I think this is much more intuitive. Also, more room for custom actions!_
 
 #### Sel Button – Master
@@ -374,9 +376,7 @@ Hitting **Shift and F-Key** together (in that order) opens a resizable **Scribbl
 
 Still not better than if the US-2400 had a display, but it sure helps.
 
-Images:
-[Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View"), 
-[Channel Strip View (Chan Mode)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
+Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View"), [Channel Strip View (Chan Mode)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
 
 [Back to Top](#contents)
 
@@ -388,10 +388,7 @@ In previous versions I included a sheet you could print out and stick on the Mas
 
 So I made an On-Screen Help Window that shows all button functions (hardcoced ones as well as custom actions that were loaded). You can access it by hitting **F-Key and Shift** together and in that order (reversed order brings up Channel Strip).
 
-Images:
-[Pan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpPan.png "On Screen Help – Pan Mode, no qualifier"), 
-[Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), 
-[Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChanFKey.png "On Screen Help – Chan Mode, F-Key pressed")
+Images: [Pan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpPan.png "On Screen Help – Pan Mode, no qualifier"), [Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), [Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChanFKey.png "On Screen Help – Chan Mode, F-Key pressed")
 
 [Back to Top](#contents)
 
