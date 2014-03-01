@@ -46,19 +46,19 @@
 
 *   If you’ve never heard of GitHub – the ‘Download ZIP’-Button should be somewhere on the right, use it to download the files, extract them and proceed as follows:
 
-*   reaper_csurf_us2400.dll goes into Programs\Reaper\Plugins. Use the 64 bit version for Windows 7 and the like, and the 32 bit for XP. 
+*   reaper_csurf_us2400.dll goes into `Programs\Reaper\Plugins`. Use the 64 bit version for Windows 7 and the like, and the 32 bit for XP. 
 
-	If you want to use the Meter Mode (encoder rings as VU Meters) choose the file that ends with ‘_metermode’, if you want to use the Meter-Button as an additional qualifier key (like Shift or F-Key) instead choose the file with ‘_mkey’ in the name. Read more about it below, under ‘M-Key or Meter Mode’
+	If you want to use the Meter Mode (encoder rings as VU Meters) choose the file that ends with `_metermode`, if you want to use the Meter-Button as an additional qualifier key (like Shift or F-Key) instead choose the file with `_mkey` in the name. Read more about it [M-Key or Meter Mode](#m-key-or-meter-mode)
 
-*   I recommend putting the ReaScript (.py) files for custom actions (see below) in Reaper’s Scripts directory: Documents and Settings\YourUsername\Application Data\Reaper\Scripts but you can put them anywhere.
+*   I recommend putting the ReaScript (.py) files for [Custom Actions](#custom-actions) in Reaper’s Scripts directory: `Documents and Settings\YourUsername\Application Data\Reaper\Scripts` but technically you can put them anywhere.
 
-* 	The ‘Split’ actions require some custom Jesusonic-Plugins (mainly for routing stuff), those are in the according folder (Custom Actions/Splits), they go here: Documents and Settings\YourUsername\Application Data\Reaper\Effects.
+* 	The Split (see [Action sets in the install package](#action-sets-in-the-install-package)) actions require some custom Jesusonic-Plugins (mainly for routing stuff), those are in the according folder (Custom Actions/Splits), they go here: `Documents and Settings\YourUsername\Application Data\Reaper\Effects`.
 
 *   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me! *I found a nice hack for this: hitting the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
 
 *   Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
 
-*   You can throw away the ‘Source’ folder (it’s the c++ code) if you just want to run the extension. I would prefer it of course, if - after a short test drive - you would identify the flaws, put on your hacker hat, fork the extension and fix them.
+*   You can throw away the `Source` folder (it’s the c++ code) if you just want to run the extension. I would prefer it of course, if - after a short test drive - you would identify the flaws, put on your hacker hat, fork the extension and fix them.
 
 [Back to Top](#contents)
 
@@ -68,7 +68,7 @@
 
 *   Delete reaper_csurf_us2400.dll
 
-*   If you want, remove the scripts/JS plug-ins and uninstall Python, but you don’t have to.
+*   If you want, remove the ReaScripts and JS plug-ins, and uninstall Python, but you don’t have to.
 
 That’s about it.
 
@@ -190,7 +190,20 @@ Out	| Time-select next region (between the next set of markers)	| Toggle loop pl
 
 #### Transport Buttons
 
-... do what you expect them to do :-)
+**All modes:**	| No Key (Default) 	| Shift 
+Rew 			| Rewind 			| Selected tracks' automation: Off / Trim\*
+FFwd 			| Fast forward		| Selected tracks' automation: Read Mode\*
+Stop 			| Stop 				| Selected tracks' automation: Latch Mode\*
+Play 			| Play 				| Selected tracks' automation: Write Mode\*
+Rec 			| Rec 				| Selected tracks' automation: Write current value to whole time selection
+
+*\*The light above the according transport buttons blink to indicate mode(s) – if more than one light blinks that means different tracks have different modes enabled.*
+
+All hardcoded actions of the Transport section can be overridden by loading custom actions. 
+
+The default set in the installation package overrides the default Rew / Ffwd with 'Jump to next prev POI (marker, loop start/end, etc.)', because you can use the scrub wheel to get around. If you want default behaviour, simply don't install those two custom actions, or assign them to another button. (See [Custom Actions](#custom-actions))
+
+
 
 [Back to Top](#contents)
 
@@ -212,13 +225,13 @@ The US-2400 supports up to 6 aux busses, you can access the settings to each one
 
 When entering Channel Strip Mode (Chan Mode for short) you can select the FX chain of one track using the Track Select buttons – your existing track selection stays active, a blinking Track Select button indicates the selected FX chain. 
 
-In this mode the rotary encoders are used for FX parameters. The function auf Aux and Bank buttons changes, so you can step through your parameters and through you FX chain, insert new FX, delete FX and move them up and down the chain using the Aux buttons in this mode (see details below).
+In this mode the rotary encoders are used for FX parameters. The function auf Aux and Bank buttons changes, so you can step through your parameters and through you FX chain, insert new FX, delete FX and move them up and down the chain using the Aux buttons in this mode (details under [Hardcoded Functions](#hardcoded-functions)).
 
 Due to the way many VST plugins are coded, the parameters will not appear in the same order on the US-2400 as they do in the Graphical User Interface of the plug-in – nothing I can do about that.
 
 You can use Reapers option to switch to a basic UI (the UI button on the top left of the FX window) – the parameter order in this view will match the one of the US-2400 (thanks, Nardberr!).
 
-Or you can use the **Scribble Strip Window** (see below).
+Or you can use the [Scribble Strip Window](#scribble-strip-window).
 
 [Back to Top](#contents)
 
@@ -226,7 +239,7 @@ Or you can use the **Scribble Strip Window** (see below).
 
 ### Custom Actions
 
-Many of the buttons are connected with a trigger that just fires ReaScripts. The scripts get assigned to the according buttons on program start by parts of their filenames. You can give your ReaScript any name you like, I recommend a short description of what it does, because the filename is the text that shows up in Reaper’s action dialog and in the US-2400 On-Screen Help (see below).
+Many of the buttons are connected with a trigger that just fires ReaScripts. The scripts get assigned to the according buttons on program start by parts of their filenames. You can give your ReaScript any name you like, I recommend a short description of what it does, because the filename is the text that shows up in Reaper’s action dialog and in the US-2400 [On-Screen-Help](#on-screen-help).
 
 **Important:** The filename has to contain a kind of signature at the end that the csurf plugin uses to identify and assign the action – it looks like this:
 
@@ -236,10 +249,10 @@ Many of the buttons are connected with a trigger that just fires ReaScripts. The
 
 *	**‘US-2400’** – this identifies it as an action the CSurf plug-in is supposed to load.
 *	**‘Pan’ / ‘Chan’ / ‘Aux’** – assigns an action to a certain mode (i.e. the action is only available in that mode). You can leave this bit out, then the action will be triggered regardless of current mode.
-* 	**‘NoKey’ / ‘Shift’ / ‘FKey’ / ‘MKey’** – the qualifier key this action is assigned to, obviously. You can leave this out, too, for the action to be assigned to all qualifier combinations. Use ‘NoKey’ if you want the action assigned to the button without qualifier exclusively. ‘MKey’ is only available if you haven’t installed the meter mode version (see above) of course.
+* 	**‘NoKey’ / ‘Shift’ / ‘FKey’ / ‘MKey’** – the qualifier key this action is assigned to, obviously. You can leave this out, too, for the action to be assigned to all qualifier combinations. Use ‘NoKey’ if you want the action assigned to the button without qualifier exclusively. ‘MKey’ is only available if you haven’t installed the meter mode version (see [Meter Mode or M-Key](#meter-mode-or-m-key) and [Install](#install)) of course.
 *	Lastly, the button itself – available are the 6 Aux Buttons (**‘1’** to **‘6’**), the **‘Null’** button, and the transport section (**‘Rew’, ‘FFwd’, ‘Stop’, ‘Play’, ‘Rec’**).
 
-**The right form is important for assignment to work:** Separate the above bits by space, dash, space (‘ - ’) and the identification is case sensitive (e.g. ‘Ffwd’ won’t work).
+**The right form is important for assignment to work:** Separate the above bits by space, dash, space (‘ - ’). Also, the identification is case sensitive (e.g. ‘Ffwd’ won’t work).
 
 **The narrower assignment overwrites the wider one.** – Example: Let’s say you have an action ‘(US-2400 - 3)’. This should be triggered by the 3rd Aux button, with every qualifier in every mode. But if you also have an action ‘(US-2400 - FKey - 3)’ this action overrides the other action (only for FKey/3 of course). ‘(US-2400 - Chan - FKey - 3’ would overide both previous ones.
 
