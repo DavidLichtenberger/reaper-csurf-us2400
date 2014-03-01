@@ -60,7 +60,7 @@
 
 *   Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
 
-*   You can throw away the `Source` folder (it’s the c++ code) if you just want to run the extension. I would prefer it of course, if - after a short test drive - you would identify the flaws, put on your hacker hat, fork the extension and fix them.
+*   You can throw away the `Source` folder (it’s the c++ code) if you just want to run the extension. I would prefer it of course, if – after a short test drive – you would identify the flaws, put on your hacker hat, fork the extension and fix them.
 
 [Back to Top](#contents)
 
@@ -88,8 +88,8 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
 **Default (Pan)**			| Pan 				| Pan > C 			| Stereo Width
 **Chan** 					| FX parameter 		| FX-Parameter: fine| FX parameter: toggle / coarse\*
-**Pan & Chan – _Flip_**		| Volume 			| Volume > 0dB 		| Volume > -inf dB
-**Aux**						| Send Volume 		| Send Volume > 0dB | Send Volume > -inf dB
+**Pan & Chan – _Flip_**		| Volume 			| Volume > 0dB 		| Volume > –inf dB
+**Aux**						| Send Volume 		| Send Volume > 0dB | Send Volume > –inf dB
 **Aux – _Flip_** 			| Send Pan (!) 		| Send Pan > C 		| Send Pan
 
 _\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry._
@@ -100,10 +100,10 @@ _\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5
 
 Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
-**All Modes, no flip**		| Volume			| Volume > 0dB		| Volume > -inf dB
+**All Modes, no flip**		| Volume			| Volume > 0dB		| Volume > –inf dB
 **Default (Pan) – _Flip_**	| Pan  		 		| Pan > C 			| Stereo width
-**Chan - Flip**				| FX parameter\*	| FX parameter > max| FX parameter > min
-**Aux – _Flip_** 			| Send volume 		| Send volume > 0dB | Send volume > -inf dB
+**Chan – Flip**				| FX parameter\*	| FX parameter > max| FX parameter > min
+**Aux – _Flip_** 			| Send volume 		| Send volume > 0dB | Send volume > –inf dB
 
 _\* If it seems you just can’t manage to turn a switch with the rotaries (unfortunately it happens, see above), you can flip and use the fader as a workaround. Sucks, I know._
 
@@ -112,7 +112,7 @@ _\* If it seems you just can’t manage to turn a switch with the rotaries (unfo
 Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
 **Default (Pan)**			| Select track		| Rec Arm\*			| Switch Phase\*\*
-**Chan** 					| Select this track's FX Chain | Rec Arm\*| Switch Phase\*\*
+**Chan** 					| Select this track’s FX Chain | Rec Arm\*| Switch Phase\*\*
 **Aux**						| Select track 		| Remove Aux Send\*\*\*| Add Aux Send\*\*\*
 
 _\* Indicated by the light below the encoders glowing blinking_
@@ -126,7 +126,7 @@ _\*\*\* Attention users of previous versions: This is new – I think this is mu
 Mode 						| No Key (Default) or Shift 		| F-Key
 ---	| --- | --- 
 **Pan & Aux**				| Deselect / Select all Tracks 		| Select Master
-**Chan** 					| Select Master's FX chain 			| Select Master
+**Chan** 					| Select Master’s FX chain 			| Select Master
 
 #### Solo Button – Tracks
 
@@ -208,15 +208,15 @@ Out	| Time-select next region (between the next set of markers)	| Toggle loop pl
 
 **All modes:**	| No Key (Default) 	| Shift 
 ---	| --- | --- 
-Rew 			| Rewind 			| Selected tracks' automation: Off / Trim\*
-FFwd 			| Fast forward		| Selected tracks' automation: Read Mode\*
-Stop 			| Stop 				| Selected tracks' automation: Latch Mode\*
-Play 			| Play 				| Selected tracks' automation: Write Mode\*
-Rec 			| Rec 				| Selected tracks' automation: Write current value to whole time selection
+Rew 			| Rewind 			| Selected tracks’ automation: Off / Trim\*
+FFwd 			| Fast forward		| Selected tracks’ automation: Read Mode\*
+Stop 			| Stop 				| Selected tracks’ automation: Latch Mode\*
+Play 			| Play 				| Selected tracks’ automation: Write Mode\*
+Rec 			| Rec 				| Selected tracks’ automation: Write current value to whole time selection
 
 All hardcoded actions of the Transport section can be overridden by loading custom actions. 
 
-The default set in the installation package overrides the default Rew / Ffwd with 'Jump to next prev POI (marker, loop start/end, etc.)', because you can use the scrub wheel to get around. If you want default behaviour, simply don't install those two custom actions, or assign them to another button. (See [Custom Actions](#custom-actions))
+The default set in the installation package overrides the default Rew / Ffwd with ‘Jump to next prev POI (marker, loop start/end, etc.)’, because you can use the scrub wheel to get around. If you want default behaviour, simply don’t install those two custom actions, or assign them to another button. (See [Custom Actions](#custom-actions))
 
 _\*The light above the according transport buttons blink to indicate mode(s) – if more than one light blinks that means different tracks have different modes enabled._
 
@@ -258,20 +258,20 @@ Many of the buttons are connected with a trigger that simply fires a ReaScripts 
 
 The filename has to contain a kind of signature at the end that the csurf plugin uses to identify and assign the action – it looks like this:
 
-‘(US-2400 - Chan - FKey - 3)’
+`(US-2400 - Chan - FKey - 3)`
 
 ... which is pretty self-explanatory I guess, but here are the details nonetheless:
 
-*	**‘US-2400’** – this identifies it as an action the CSurf plug-in is supposed to load.
-*	**‘Pan’ / ‘Chan’ / ‘Aux’** – assigns an action to a certain mode (i.e. the action is only available in that mode). You can leave this bit out, then the action will be triggered regardless of current mode.
-* 	**‘NoKey’ / ‘Shift’ / ‘FKey’ / ‘MKey’** – the qualifier key this action is assigned to, obviously. You can leave this out, too, for the action to be assigned to all qualifier combinations. Use ‘NoKey’ if you want the action assigned to the button without qualifier exclusively. ‘MKey’ is only available if you haven’t installed the meter mode version (see [Meter Mode or M-Key](#meter-mode-or-m-key) and [Install](#install)) of course.
-*	Lastly, the button itself – available are the 6 Aux Buttons (**‘1’** to **‘6’**), the **‘Null’** button, and the transport section (**‘Rew’, ‘FFwd’, ‘Stop’, ‘Play’, ‘Rec’**).
+*	`US-2400` – this identifies it as an action the CSurf plug-in is supposed to load.
+*	`Pan` / `Chan` / `Aux` – assigns an action to a certain mode (i.e. the action is only available in that mode). You can leave this bit out, then the action will be triggered regardless of current mode.
+* 	`NoKey` / `Shift` / `FKey` / `MKey` – the qualifier key this action is assigned to, obviously. You can leave this out, too, for the action to be assigned to all qualifier combinations. Use `NoKey` if you want the action assigned to the button without qualifier exclusively. `MKey` is only available if you haven’t installed the meter mode version (see [Meter Mode or M-Key](#meter-mode-or-m-key) and [Install](#install)) of course.
+*	Lastly, the button itself – available are the 6 Aux Buttons (`1` to `6`), the `Null` button, and the transport section (`Rew`, `FFwd`, `Stop`, `Play`, `Rec`).
 
-**The right form is important for assignment to work:** Separate the above bits by space, dash, space (‘ - ’). Also, the identification is case sensitive (e.g. ‘Ffwd’ won’t work).
+**The right form is important for assignment to work:** Separate the above bits by space, dash, space (` - `). Also, the identification is case sensitive (e.g. `Ffwd` won’t work).
 
-**The narrower assignment overwrites the wider one.** – Example: Let’s say you have an action ‘(US-2400 - 3)’. This should be triggered by the 3rd Aux button, with every qualifier in every mode. But if you also have an action ‘(US-2400 - FKey - 3)’ this action overrides the other action (only for FKey/3 of course). ‘(US-2400 - Chan - FKey - 3’ would overide both previous ones.
+**The narrower assignment overwrites the wider one.** – Example: Let’s say you have an action `(US-2400 - 3)`. This should be triggered by the 3rd Aux button, with every qualifier in every mode. But if you also have an action `(US-2400 - FKey - 3)` this action overrides the other action (only for FKey/3 of course). `(US-2400 - Chan - FKey - 3` would overide both previous ones.
 
-**All buttons except ‘Null’ have hardcoded actions, when no qualifier is pressed:** Aux 1 to 6 with no qualifier enters Aux Mode, transport does the obvious things, but you can override those by loading an action using the according signature (e.g. override Play with ‘(US-2400 - Play’)!
+**All buttons except ‘Null’ have hardcoded actions, when no qualifier is pressed:** Aux 1 to 6 with no qualifier enters Aux Mode, transport does the obvious things, but you can override those by loading an action using the according signature (e.g. override Play with `(US-2400 - Play)` or `(US-2400 - NoKey - Play)`)!
 
 ---
 
@@ -283,8 +283,8 @@ The filename has to contain a kind of signature at the end that the csurf plugin
 
 This set includes:
 
-* Remove envelopes from selected tracks (FKey - 6)
-* Show or hide envelopes (FKey - 5)
+* Remove envelopes from selected tracks (FKey – 6)
+* Show or hide envelopes (FKey – 5)
 
 ---
 
@@ -292,38 +292,38 @@ This set includes:
 
 This set includes:
 
-* Undo (FKey - Rew)
-* Redo (FKey - FFwd)
-* Save (FKey - Play)
-* Open Render Dialog (FKey - Rec)
+* Undo (FKey – Rew)
+* Redo (FKey – FFwd)
+* Save (FKey – Play)
+* Open Render Dialog (FKey – Rec)
 
 ---
 
 ##### Time / Zoom / Scroll
 
 This set includes:
-* Toggle scrolling with play position (FKey - Stop)
-* Scroll to play position – not edit cursor! (FKey - Null)
-* Zoom time selection (NoKey - Null)
-* Zoom track selection (Shift - Null) – *this seems to be buggy, working on it!*
-* Jump to next point of interest – end of loop, marker, etc. (NoKey - FFwd)
-* Jump to previous point of interest – beginning of loop, marker, etc. (NoKey - Rew) - *These last two actions Overrride the hardcoded FFwd / Rew. I find them to be much more useful, I use the scrub wheel to get around if I ever have to, mostly I’m just jumping from point to point. But you can of course put them somewhere else by renaming the file, or simply not install them.
+* Toggle scrolling with play position (FKey – Stop)
+* Scroll to play position – not edit cursor! (FKey – Null)
+* Zoom time selection (NoKey – Null)
+* Zoom track selection (Shift – Null) – *this seems to be buggy, working on it!*
+* Jump to next point of interest – end of loop, marker, etc. (NoKey – FFwd)
+* Jump to previous point of interest – beginning of loop, marker, etc. (NoKey – Rew) – *These last two actions Overrride the hardcoded FFwd / Rew. I find them to be much more useful, I use the scrub wheel to get around if I ever have to, mostly I’m just jumping from point to point. But you can of course put them somewhere else by renaming the file, or simply not install them.
 
 ---
 
 ##### Track actions
 
 This set includes:
-* Move selected tracks left (FKey - 1)
-* Move selected tracks right (FKey - 2)
-* Duplicate selected tracks (FKey - 3)
-* Rename selected tracks – uses SWS’ very handy dialog (FKey - 4)
-* Insert empty track before first selected track (Shift - 4)
-* Delete selected tracks (Shift - 5)
-* Wrap selected tracks in folders / remove selected folder, unwrap containing tracks first (Shift - 1)
-* Open or close selected folders – in mixer view (Shift - 2)
-* Group selected tracks (Shift - 3)
-* Ungroup selected tracks (Shift - 6) – *For the SWS Grouping / Ungrouping actions to work you have to set / save the default flags once in every project: Shift + G (on your keyboard, not the US-2400) opens the Grouping Settings, tweak yours and hit Save.
+* Move selected tracks left (FKey – 1)
+* Move selected tracks right (FKey – 2)
+* Duplicate selected tracks (FKey – 3)
+* Rename selected tracks – uses SWS’ very handy dialog (FKey – 4)
+* Insert empty track before first selected track (Shift – 4)
+* Delete selected tracks (Shift – 5)
+* Wrap selected tracks in folders / remove selected folder, unwrap containing tracks first (Shift – 1)
+* Open or close selected folders – in mixer view (Shift – 2)
+* Group selected tracks (Shift – 3)
+* Ungroup selected tracks (Shift – 6) – *For the SWS Grouping / Ungrouping actions to work you have to set / save the default flags once in every project: Shift + G (on your keyboard, not the US-2400) opens the Grouping Settings, tweak yours and hit Save.
 
 ---
 
@@ -331,7 +331,7 @@ This set includes:
 
 Edit these files to load your favorite plugins: Open the .py file in a text editor and insert the name of the plug in you want to load with that action in line 4 behind ‘fx_name = ’, in quotes (e.g. ‘fx_name = "ReaComp"’).
 
-Templates are included for actions triggered by every Aux Button with all qualifiers in Chan Mode (Chan - FKey/MKey/Shift - 1/2/3/4/5/6).
+Templates are included for actions triggered by every Aux Button with all qualifiers in Chan Mode (Chan – FKey/MKey/Shift – 1/2/3/4/5/6).
 
 ---
 
@@ -342,13 +342,13 @@ These actions are not really US-2400 related, but I found them so useful, I want
 Basically they split the signal of a single track into several sub tracks (like an mono/stereo pair for example). Those get send to a folder that automatically adjusts the sum volume of the sub tracks to stay at 0 dB, regardless what you do with the volumes of the sub tracks.
 
 Included flavors:
-* Split first selected track LR – left/right (MKey - 1) – *Much quicker than duplicating and setting item props! You can always work with all mono files like the oldschool of course, then this action makes no sense to you at all, probably ...*
-* Split first selected track MS – mono/stereo (MKey - 2)
-* Split first selected track LFHF – frequency crossover lo/hi freq (MKey - 3) – *Set frequencies in the ‘(LH-Split)’ plug-in that gets inserted automatically in the first sub track.*
-* Split first selected track LMH – frequency crossover lo/mid/hi freq (MKey - 4) – *Set frequencies in the ‘(LMH-Split)’ plug-in that gets inserted automatically in the first sub track.*
-* Split first selected track LMMF – 4-way frequency crossover, lo/lo mids/hi mids/hi freq (MKey - 5) – *Set frequencies in the ‘(LMMH-Split)’ plug-in that gets inserted automatically in the first sub track.*
-* Add parallel processor (MKey - 6) – *Go wild with NY compression! The automatic volume compensation in the folder track makes sure you judge the sound and not the volume*
-* Unsplit first selected split track (MKey - Null) – *Removes a split and returns to the single track you had before. Any FX you inserted in the sub tracks will be lost!*
+* Split first selected track LR – left/right (MKey – 1) – *Much quicker than duplicating and setting item props! You can always work with all mono files like the oldschool of course, then this action makes no sense to you at all, probably ...*
+* Split first selected track MS – mono/stereo (MKey – 2)
+* Split first selected track LFHF – frequency crossover lo/hi freq (MKey – 3) – *Set frequencies in the ‘(LH-Split)’ plug-in that gets inserted automatically in the first sub track.*
+* Split first selected track LMH – frequency crossover lo/mid/hi freq (MKey – 4) – *Set frequencies in the ‘(LMH-Split)’ plug-in that gets inserted automatically in the first sub track.*
+* Split first selected track LMMF – 4-way frequency crossover, lo/lo mids/hi mids/hi freq (MKey – 5) – *Set frequencies in the ‘(LMMH-Split)’ plug-in that gets inserted automatically in the first sub track.*
+* Add parallel processor (MKey – 6) – *Go wild with NY compression! The automatic volume compensation in the folder track makes sure you judge the sound and not the volume*
+* Unsplit first selected split track (MKey – Null) – *Removes a split and returns to the single track you had before. Any FX you inserted in the sub tracks will be lost!*
 
 **Important:** I didn’t have time yet to fully test drive those actions, so use with caution. I think you can’t use them on folders as of now. Nesting splits should work though (like using an LMH on the stereo signal of an MS split).
 
@@ -358,9 +358,9 @@ Included flavors:
 
 ### M-Key or Meter Mode
 
-I finally found out how to adress the Meter Mode of the US-2400, you can employ it by installing the .dll with ‘_meter-mode’ in the filename and then hitting the Meter Key on the US-2400.
+I finally found out how to adress the Meter Mode of the US-2400, you can employ it by installing the .dll with `_meter-mode` in the filename and then hitting the Meter Key on the US-2400.
 
-But I admit that I find this a quite useless feature (15 lights for a VU signal, that’s more like a consumer tape deck ...) – I could use an additional qualifier key instead (more custom actions, yay!) so I made a version for that as well: If you use the .dll with ‘_m-key’ in the filename hitting Meter makes another command set available (like Shift or F-Key). 
+But I admit that I find this a quite useless feature (15 lights for a VU signal, that’s more like a consumer tape deck ...) – I could use an additional qualifier key instead (more custom actions, yay!) so I made a version for that as well: If you use the .dll with `_m-key` in the filename hitting Meter makes another command set available (like Shift or F-Key). 
 
 Unfortunately this button doesn’t send a signal for releasing the button (unlike every other button, weirdly), which poses a problem in using it as a qualifier: If you can’t check for a button-up you have no way of knowing if it’s still pressed when another button goes down (which is of course how qualifier keys work). 
 
@@ -384,7 +384,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 
 ### On-Screen-Help
 
-In previous versions I included a sheet you could print out and stick on the Master section but now, with a third qualifier key (M-Key) the custom actions got a bit much – I was running out of room. 
+There is a cheat sheet for the hardcoded functions which you can print out and stick on the Master section, but to include the custom actions doesn’t really make sense, if you’re using your own. And even if you’re using the default sets, with the new M-Key we’re running out of room to put all those actions.
 
 So I made an On-Screen Help Window that shows all button functions (hardcoced ones as well as custom actions that were loaded). You can access it by hitting **F-Key and Shift** together and in that order (reversed order brings up Channel Strip).
 
