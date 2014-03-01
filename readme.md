@@ -13,7 +13,7 @@
 		* [Action sets in the install package](#action-sets-in-the-install-package)
 	* [M-Key or Meter Mode](#m-key-or-meter-mode)
 	* [Scribble Strip Window](#scribble-strip-window)
-	* [On-Screen-Help](#on-screen-help)
+	* [Keymap and On-Screen-Help](#keymap-and-on-screen-help)
 * [Notes](#notes)
 
 ---
@@ -254,7 +254,7 @@ Or you can use the [Scribble Strip Window](#scribble-strip-window).
 
 ### Custom Actions
 
-Many of the buttons are connected with a trigger that simply fires a ReaScripts (read about those [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info"). The scripts get identified by parts of their filenames and assigned to the according buttons on program start. You can give your ReaScript any name you like, I recommend a short description of what it does, because the filename is the text that shows up in Reaper’s action dialog and in the US-2400 [On-Screen-Help](#on-screen-help).
+Many of the buttons are connected with a trigger that simply fires a ReaScripts (read about those [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info"). The scripts get identified by parts of their filenames and assigned to the according buttons on program start. You can give your ReaScript any name you like, I recommend a short description of what it does, because the filename is the text that shows up in Reaper’s action dialog and in the US-2400 [On-Screen-Help](#keymap-and-on-screen-help).
 
 The filename has to contain a kind of signature at the end that the csurf plugin uses to identify and assign the action – it looks like this:
 
@@ -372,7 +372,7 @@ The workaround is as follows: when you press the M-Key it stays activated for a 
 
 ### Scribble Strip Window
 
-Hitting **Shift and F-Key** together (in that order) opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
+Hitting **Shift and F-Key** together (in that order, reversed order brings up the [On-Screen-Help](#keymap-and-on-screen-help)) opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
 
 Still not better than if the US-2400 had a display, but it sure helps.
 
@@ -382,11 +382,11 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 
 ---
 
-### On-Screen-Help
+### Keymap and On-Screen-Help
 
-There is a cheat sheet for the hardcoded functions which you can print out and stick on the Master section, but to include the custom actions doesn’t really make sense, if you’re using your own. And even if you’re using the default sets, with the new M-Key we’re running out of room to put all those actions.
+There is a Keymap for the hardcoded functions ([image](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-Keymap.gif "Keymap")) which you can print out and stick on the Master section. 
 
-So I made an On-Screen Help Window that shows all button functions (hardcoced ones as well as custom actions that were loaded). You can access it by hitting **F-Key and Shift** together and in that order (reversed order brings up Channel Strip).
+But to include the custom actions doesn’t really make sense if you’re using your own anyway. And even if you’re using the default sets, with the new M-Key there wouldn’t be room to put them all on the Keymap in a sensible fashion. So I made an On-Screen Help Window that shows all button functions (hardcoded ones as well as custom actions that were loaded). You can access it by hitting **F-Key and Shift** together and in that order (reversed order brings up the [Channel Strip](#channel-strip)).
 
 Images: [Pan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpPan.png "On Screen Help – Pan Mode, no qualifier"), [Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), [Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChanFKey.png "On Screen Help – Chan Mode, F-Key pressed")
 
