@@ -92,7 +92,7 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 **Aux**						| Send Volume 		| Send Volume > 0dB | Send Volume > -inf dB
 **Aux – *Flip*** 			| Send Pan (!) 		| Send Pan > C 		| Send Pan
 
-*\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry.*
+_\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry._
 
 *There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you’re lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I’m saying ‘should’ because I haven’t found a plug in to test this with yet. If you found one that’s freeware, tell me.*
 
@@ -169,9 +169,11 @@ Enter default mode (Pan Mode)
 3 				| Bypass current FX
 4 				| Insert FX (also opens and closes FX Browser)
 5 				| Delete current FX
-6 				| Switch between recording FX automation (plugin parameters) and track automation (volume, pan, etc.) – blinks when FX automation is enabled
+6 				| Switch between recording FX automation (plugin parameters) and track automation (volume, pan, etc.)\*
 
-Combinations with qualifier keys are assignable to custom actions
+Combinations with qualifier keys are assignable to custom actions.
+
+*\* – blinks when FX automation is enabled*
 
 #### Null Button (below F-Key)
 
@@ -252,9 +254,9 @@ Or you can use the [Scribble Strip Window](#scribble-strip-window).
 
 ### Custom Actions
 
-Many of the buttons are connected with a trigger that just fires ReaScripts. The scripts get assigned to the according buttons on program start by parts of their filenames. You can give your ReaScript any name you like, I recommend a short description of what it does, because the filename is the text that shows up in Reaper’s action dialog and in the US-2400 [On-Screen-Help](#on-screen-help).
+Many of the buttons are connected with a trigger that simply fires a ReaScripts (read about those [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info"). The scripts get identified by parts of their filenames and assigned to the according buttons on program start. You can give your ReaScript any name you like, I recommend a short description of what it does, because the filename is the text that shows up in Reaper’s action dialog and in the US-2400 [On-Screen-Help](#on-screen-help).
 
-**Important:** The filename has to contain a kind of signature at the end that the csurf plugin uses to identify and assign the action – it looks like this:
+The filename has to contain a kind of signature at the end that the csurf plugin uses to identify and assign the action – it looks like this:
 
 ‘(US-2400 - Chan - FKey - 3)’
 
