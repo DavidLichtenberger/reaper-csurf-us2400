@@ -1,0 +1,99 @@
+desc: Splits ch 1/2 in LF/MF/HF. LF -> 1/2, MF -> 3/4, HF -> 5/6
+
+in_pin:In L
+in_pin:In R
+out_pin:LF Out L
+out_pin:LF Out R
+out_pin:MF Out L
+out_pin:MF Out R
+out_pin:HF Out L
+out_pin:HF Out R
+
+
+slider1:498.5<16.4,23679.6,0.1>L/M Split Freq (Hz)
+slider2:3.93<-1,9.5,0.01>L/M Split Freq (Octaves)
+
+slider4:1500.6<16.4,23679.6,0.1>M/H Split Freq (Hz)
+slider5:5.52<-1,9.5,0.01>M/H Split Freq (Octaves)
+
+@slider
+
+slider1 != lmSplitFreq_hz ? (
+  lmSplitFreq_hz = slider1;
+  lmSplitFreq_hz = floor(lmSplitFreq_hz * 10 + 0.5) / 10;
+  slider1 = lmSplitFreq_hz;
+    
+  lmSplitFreq_oct = log(lmSplitFreq_hz / 32.7032) / log(2);
+  lmSplitFreq_oct = floor(lmSplitFreq_oct * 100 + 0.5) / 100;
+  slider2 = lmSplitFreq_oct;
+);
+
+slider2 != lmSplitFreq_oct ? (
+  lmSplitFreq_oct = slider2;
+  lmSplitFreq_oct = floor(lmSplitFreq_oct * 100 + 0.5) / 100;
+  slider2 = lmSplitFreq_oct;
+  
+  lmSplitFreq_hz = min(32.7032 * 2 ^ (lmSplitFreq_oct), srate);
+  lmSplitFreq_hz = floor(lmSplitFreq_hz * 10 + 0.5) / 10;
+  slider1 = lmSplitFreq_hz;
+);
+
+slider4 != mhSplitFreq_hz ? (
+  mhSplitFreq_hz = slider4;
+  mhSplitFreq_hz = floor(mhSplitFreq_hz * 10 + 0.5) / 10;
+  slider4 = mhSplitFreq_hz;
+    
+  mhSplitFreq_oct = log(mhSplitFreq_hz / 32.7032) / log(2);
+  mhSplitFreq_oct = floor(mhSplitFreq_oct * 100 + 0.5) / 100;
+  slider5 = mhSplitFreq_oct;
+);
+
+slider5 != mhSplitFreq_oct ? (
+  mhSplitFreq_oct = slider5;
+  mhSplitFreq_oct = floor(mhSplitFreq_oct * 100 + 0.5) / 100;
+  slider5 = mhSplitFreq_oct;
+  
+  mhSplitFreq_hz = min(32.7032 * 2 ^ (mhSplitFreq_oct), srate);
+  mhSplitFreq_hz = floor(mhSplitFreq_hz * 10 + 0.5) / 10;
+  slider4 = mhSplitFreq_hz;
+);
+
+hpLMX = exp(-2.0 * $pi * lmSplitFreq_hz / srate);
+hpLMA0 = 1.0 - hpLMX;
+hpLMB1 = -hpLMX;
+
+hpMHX = exp(-2.0 * $pi * mhSplitFreq_hz / srate);
+hpMHA0 = 1.0 - hpMHX;
+hpMHB1 = -hpMHX;
+
+
+
+@sample
+
+l_sig = spl0;
+r_sig = spl1;
+
+hpLMTmpL_sig = hpLMA0 * l_sig - hpLMB1 * hpLMTmpL_sig;
+hpLMTmpR_sig = hpLMA0 * r_sig - hpLMB1 * hpLMTmpR_sig;
+
+hpLML_sig = l_sig - hpLMTmpL_sig;
+hpLMR_sig = r_sig - hpLMTmpR_sig;
+
+lpLML_sig = l_sig - hpLML_sig;
+lpLMR_sig = r_sig - hpLMR_sig;
+
+hpMHTmpL_sig = hpMHA0 * l_sig - hpMHB1 * hpMHTmpL_sig;
+hpMHTmpR_sig = hpMHA0 * r_sig - hpMHB1 * hpMHTmpR_sig;
+
+hpMHL_sig = l_sig - hpMHTmpL_sig;
+hpMHR_sig = r_sig - hpMHTmpR_sig;
+
+hpLML_sig = hpLML_sig - hpMHL_sig;
+hpLMR_sig = hpLMR_sig - hpMHR_sig;
+
+spl0 = lpLML_sig;
+spl1 = lpLMR_sig;
+spl2 = hpLML_sig;
+spl3 = hpLMR_sig;
+spl4 = hpMHL_sig;
+spl5 = hpMHR_sig;

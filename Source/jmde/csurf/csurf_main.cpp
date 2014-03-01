@@ -65,7 +65,10 @@ const char* (*GetExtState)(const char* section, const char* key);
 void (*SetExtState)(const char* section, const char* key, const char* value, bool persist);
 void (*Undo_BeginBlock)();
 void (*Undo_EndBlock)(const char* descchange, int extraflags);
-
+double (*Track_GetPeakHoldDB)(MediaTrack* track, int channel, bool clear);
+char* (*GetSetObjectState)(void* obj, const char* str);
+void (*FreeHeapPtr)(void* ptr);
+void (*TrackList_AdjustWindows)(bool isMajor);
 // ADDITIONS FOR US-2400 -- END
 
 
@@ -237,6 +240,12 @@ REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(REAPER_PLUGIN_HINSTANCE hI
   IMPAPI(SetExtState)
   IMPAPI(Undo_BeginBlock)
   IMPAPI(Undo_EndBlock)
+  IMPAPI(Track_GetPeakHoldDB)
+  IMPAPI(GetSetObjectState)
+  IMPAPI(FreeHeapPtr)
+  IMPAPI(TrackList_AdjustWindows)
+  /* US-2400 end */
+
 
 
   IMPAPI(DB2SLIDER)

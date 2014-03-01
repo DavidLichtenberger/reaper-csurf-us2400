@@ -1,0 +1,140 @@
+desc: Splits ch 1/2 in LF/LM/HM/HF. LF -> 1/2, LfLm -> 3/4, HM -> 5/6, HF -> 7/8
+
+in_pin:In L
+in_pin:In R
+out_pin:LF Out L
+out_pin:LF Out R
+out_pin:LfLm Out L
+out_pin:LfLm Out R
+out_pin:HM Out L
+out_pin:HM Out R
+out_pin:HF Out L
+out_pin:HF Out R
+
+
+slider1:300.5<16.4,23679.6,0.1>LF/LM Split Freq (Hz)
+slider2:3.23<-1,9.5,0.01>LF/LM Split Freq (Octaves)
+
+slider4:1202.1<16.4,23679.6,0.1>LM/HM Split Freq (Hz)
+slider5:5.2<-1,9.5,0.01>LM/HM Split Freq (Octaves)
+
+slider7:4808.5<16.4,23679.6,0.1>HM/HF Split Freq (Hz)
+slider8:7.2<-1,9.5,0.01>HM/HF Split Freq (Octaves)
+
+@slider
+
+slider1 != lfLmSplitFreq_hz ? (
+  lfLmSplitFreq_hz = slider1;
+  lfLmSplitFreq_hz = floor(lfLmSplitFreq_hz * 10 + 0.5) / 10;
+  slider1 = lfLmSplitFreq_hz;
+    
+  lfLmSplitFreq_oct = log(lfLmSplitFreq_hz / 32.7032) / log(2);
+  lfLmSplitFreq_oct = floor(lfLmSplitFreq_oct * 100 + 0.5) / 100;
+  slider2 = lfLmSplitFreq_oct;
+);
+
+slider2 != lfLmSplitFreq_oct ? (
+  lfLmSplitFreq_oct = slider2;
+  lfLmSplitFreq_oct = floor(lfLmSplitFreq_oct * 100 + 0.5) / 100;
+  slider2 = lfLmSplitFreq_oct;
+  
+  lfLmSplitFreq_hz = min(32.7032 * 2 ^ (lfLmSplitFreq_oct), srate);
+  lfLmSplitFreq_hz = floor(lfLmSplitFreq_hz * 10 + 0.5) / 10;
+  slider1 = lfLmSplitFreq_hz;
+);
+
+slider4 != lmHmSplitFreq_hz ? (
+  lmHmSplitFreq_hz = slider4;
+  lmHmSplitFreq_hz = floor(lmHmSplitFreq_hz * 10 + 0.5) / 10;
+  slider4 = lmHmSplitFreq_hz;
+    
+  lmHmSplitFreq_oct = log(lmHmSplitFreq_hz / 32.7032) / log(2);
+  lmHmSplitFreq_oct = floor(lmHmSplitFreq_oct * 100 + 0.5) / 100;
+  slider5 = lmHmSplitFreq_oct;
+);
+
+slider5 != lmHmSplitFreq_oct ? (
+  lmHmSplitFreq_oct = slider5;
+  lmHmSplitFreq_oct = floor(lmHmSplitFreq_oct * 100 + 0.5) / 100;
+  slider5 = lmHmSplitFreq_oct;
+  
+  lmHmSplitFreq_hz = min(32.7032 * 2 ^ (lmHmSplitFreq_oct), srate);
+  lmHmSplitFreq_hz = floor(lmHmSplitFreq_hz * 10 + 0.5) / 10;
+  slider4 = lmHmSplitFreq_hz;
+);
+
+slider7 != hmHfSplitFreq_hz ? (
+  hmHfSplitFreq_hz = slider7;
+  hmHfSplitFreq_hz = floor(hmHfSplitFreq_hz * 10 + 0.5) / 10;
+  slider7 = hmHfSplitFreq_hz;
+    
+  hmHfSplitFreq_oct = log(hmHfSplitFreq_hz / 32.7032) / log(2);
+  hmHfSplitFreq_oct = floor(hmHfSplitFreq_oct * 100 + 0.5) / 100;
+  slider8 = hmHfSplitFreq_oct;
+);
+
+slider8 != hmHfSplitFreq_oct ? (
+  hmHfSplitFreq_oct = slider8;
+  hmHfSplitFreq_oct = floor(hmHfSplitFreq_oct * 100 + 0.5) / 100;
+  slider8 = hmHfSplitFreq_oct;
+  
+  hmHfSplitFreq_hz = min(32.7032 * 2 ^ (hmHfSplitFreq_oct), srate);
+  hmHfSplitFreq_hz = floor(hmHfSplitFreq_hz * 10 + 0.5) / 10;
+  slider7 = hmHfSplitFreq_hz;
+);
+
+hpLfLmX = exp(-2.0 * $pi * lfLmSplitFreq_hz / srate);
+hpLfLmA0 = 1.0 - hpLfLmX;
+hpLfLmB1 = -hpLfLmX;
+
+hpLmHmX = exp(-2.0 * $pi * lmHmSplitFreq_hz / srate);
+hpLmHmA0 = 1.0 - hpLmHmX;
+hpLmHmB1 = -hpLmHmX;
+
+hpHmHfX = exp(-2.0 * $pi * hmHfSplitFreq_hz / srate);
+hpHmHfA0 = 1.0 - hpHmHfX;
+hpHmHfB1 = -hpHmHfX;
+
+
+@sample
+
+l_sig = spl0;
+r_sig = spl1;
+
+hpLfLmTmpL_sig = hpLfLmA0 * l_sig - hpLfLmB1 * hpLfLmTmpL_sig;
+hpLfLmTmpR_sig = hpLfLmA0 * r_sig - hpLfLmB1 * hpLfLmTmpR_sig;
+
+hpLfLmL_sig = l_sig - hpLfLmTmpL_sig;
+hpLfLmR_sig = r_sig - hpLfLmTmpR_sig;
+
+lpLfLmL_sig = l_sig - hpLfLmL_sig;
+lpLfLmR_sig = r_sig - hpLfLmR_sig;
+
+hpLmHmTmpL_sig = hpLmHmA0 * l_sig - hpLmHmB1 * hpLmHmTmpL_sig;
+hpLmHmTmpR_sig = hpLmHmA0 * r_sig - hpLmHmB1 * hpLmHmTmpR_sig;
+
+hpLmHmL_sig = l_sig - hpLmHmTmpL_sig;
+hpLmHmR_sig = r_sig - hpLmHmTmpR_sig;
+
+hpLfLmL_sig = hpLfLmL_sig - hpLmHmL_sig;
+hpLfLmR_sig = hpLfLmR_sig - hpLmHmR_sig;
+
+hpHmHfTmpL_sig = hpHmHfA0 * l_sig - hpHmHfB1 * hpHmHfTmpL_sig;
+hpHmHfTmpR_sig = hpHmHfA0 * r_sig - hpHmHfB1 * hpHmHfTmpR_sig;
+
+hpHmHfL_sig = l_sig - hpHmHfTmpL_sig;
+hpHmHfR_sig = r_sig - hpHmHfTmpR_sig;
+
+hpLmHmL_sig = hpLmHmL_sig - hpHmHfL_sig;
+hpLmHmR_sig = hpLmHmR_sig - hpHmHfR_sig;
+
+
+spl0 = lpLfLmL_sig;
+spl1 = lpLfLmR_sig;
+spl2 = hpLfLmL_sig;
+spl3 = hpLfLmR_sig;
+spl4 = hpLmHmL_sig;
+spl5 = hpLmHmR_sig;
+spl6 = hpHmHfL_sig;
+spl7 = hpHmHfR_sig;
+

@@ -1,0 +1,84 @@
+desc: Auto Vol - Send (Hit [Edit] for help)
+
+// 
+// What's this?
+//
+// Auto Vol keeps the sum volume of selected tracks at 
+// a consistent level, no matter what the individual
+// fader positions are. 
+//
+// This makes it possible to judge the sound of a blend 
+// independently from volume changes.
+//
+// The Add variant is for summing tracks whose sum 
+// volume is higher than the original volume (i.e. 
+// parallel processing - NY compression and the like).
+//
+// The Split variant is for summing tracks whose 
+// combined volumes sum up to the original (like for 
+// example with M/S-splits).
+//
+// Both use the same Send plugin (Auto Volume - Send), 
+// only the Receives differ.
+// 
+// 
+// How?
+//
+// Insert Auto Vol Send on the selected tracks whose sum
+// you want to control (where you put the fx doesn't 
+// really matter but you can put it first in the chain so 
+// it's out of your hair).
+// 
+// Send Audio and CV from this tracks to a master track 
+// that has Auto Vol Receive as first fx in its chain.
+//
+//
+// Audio Routing
+//
+// You can send audio on the first 8 channels any way 
+// you like, but only the sum on Ch 1/2 of is modulated.
+//
+//
+// CV Routing
+//
+// Ch 9 and 10 are reserved for the CV signals that 
+// Auto Vol uses to determine fader positions.
+// 
+// Send Ch 9 pre-fader to Ch 9 on the master track and
+// Ch 10 post-fader to Ch 10 on the master track.
+//
+
+in_pin: Thru 1
+in_pin: Thru 2
+in_pin: Thru 3
+in_pin: Thru 4
+in_pin: Thru 5
+in_pin: Thru 6
+in_pin: Thru 7
+in_pin: Thru 8
+out_pin: Thru 1
+out_pin: Thru 2
+out_pin: Thru 3
+out_pin: Thru 4
+out_pin: Thru 5
+out_pin: Thru 6
+out_pin: Thru 7
+out_pin: Thru 8
+out_pin: CV pre
+out_pin: CV post
+
+@sample
+
+// ch 1-8: route through
+spl0 = spl0;
+spl1 = spl1;
+spl2 = spl2;
+spl3 = spl3;
+spl4 = spl4;
+spl5 = spl5;
+spl6 = spl6;
+spl7 = spl7;
+
+// ch 9/10: CV (0.1)
+spl8 = spl9 = 0.01;
+

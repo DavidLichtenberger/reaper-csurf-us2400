@@ -1,0 +1,23 @@
+desc: Splits ch 1/2 in M/S. M -> 1/2, S -> 3/4
+
+in_pin:In L
+in_pin:In R
+out_pin:Mono 1
+out_pin:Mono 2
+out_pin:Stereo L
+out_pin:Stereo R
+
+
+
+@sample
+l_sig = spl0;
+r_sig = spl1;
+m_sig = (l_sig + r_sig) / 2;
+sl_sig = m_sig - r_sig;
+sr_sig = m_sig - l_sig;
+
+spl0 = m_sig;
+spl1 = m_sig;
+
+spl2 = sl_sig;
+spl3 = sr_sig;

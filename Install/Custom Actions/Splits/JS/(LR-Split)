@@ -1,0 +1,20 @@
+desc: Splits ch 1/2 in L/R. L -> 1/2, R -> 3/4
+
+in_pin:In L
+in_pin:In R
+out_pin:L Out 1
+out_pin:L Out 2
+out_pin:R Out 1
+out_pin:R Out 2
+
+
+
+@sample
+l_sig = spl0;
+r_sig = spl1;
+
+spl0 = l_sig;
+spl1 = l_sig;
+
+spl2 = r_sig;
+spl3 = r_sig;

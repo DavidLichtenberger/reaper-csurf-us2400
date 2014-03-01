@@ -1,0 +1,57 @@
+desc: Splits ch 1/2 in LF/HF. LF -> 1/2, HF -> 3/4
+
+in_pin:In L
+in_pin:In R
+out_pin:LF Out L
+out_pin:LF Out R
+out_pin:HF Out L
+out_pin:HF Out R
+
+slider1:1500.6<4.1,23679.6,0.1>Split Freq (Hz)
+slider2:5.52<-3,9.5,0.01>Split Freq (Octaves)
+
+@slider
+
+slider1 != splitFreq_hz ? (
+  splitFreq_hz = slider1;
+  splitFreq_hz = floor(splitFreq_hz * 10 + 0.5) / 10;
+  slider1 = splitFreq_hz;
+    
+  splitFreq_oct = log(splitFreq_hz / 32.7032) / log(2);
+  splitFreq_oct = floor(splitFreq_oct * 100 + 0.5) / 100;
+  slider2 = splitFreq_oct;
+);
+
+slider2 != splitFreq_oct ? (
+  splitFreq_oct = slider2;
+  splitFreq_oct = floor(splitFreq_oct * 100 + 0.5) / 100;
+  slider2 = splitFreq_oct;
+  
+  splitFreq_hz = min(32.7032 * 2 ^ (slider2), srate);
+  splitFreq_hz = floor(splitFreq_hz * 10 + 0.5) / 10;
+  slider1 = splitFreq_hz;
+);
+
+hpX = exp(-2.0 * $pi * splitFreq_hz / srate);
+hpA0 = 1.0 - hpX;
+hpB1 = -hpX;
+
+
+@sample
+l_sig = spl0;
+r_sig = spl1;
+
+hpTmpL_sig = hpA0 * l_sig - hpB1 * hpTmpL_sig;
+hpTmpR_sig = hpA0 * r_sig - hpB1 * hpTmpR_sig;
+
+hpL_sig = l_sig - hpTmpL_sig;
+hpR_sig = r_sig - hpTmpR_sig;
+
+lpL_sig = l_sig - hpL_sig;
+lpR_sig = r_sig - hpR_sig;
+
+spl0 = lpL_sig;
+spl1 = lpR_sig;
+spl2 = hpL_sig;
+spl3 = hpR_sig;
+

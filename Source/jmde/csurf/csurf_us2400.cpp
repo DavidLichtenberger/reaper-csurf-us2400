@@ -9,6 +9,16 @@
 
 ////// PREFERENCES //////
 
+// Meter enabled
+#define METERMODE false // true // 
+#define DESCSTRING "Tascam US-2400 (M-Key Support)" // "Tascam US-2400 (with VU-Meters)" // 
+
+// Meter: -inf = x dB
+#define MINUSINF -90.0
+
+// period in which M qualifier is active (in Run cycles)
+#define MDELAY 30
+
 
 // Encoder resolution for volume, range: 0 > 16256
 #define ENCRESVOL 100
@@ -19,7 +29,7 @@
 #define ENCRESFXFINE 3000
 #define ENCRESFXTOGGLE 1
 // How long will encoders be considered touch, in run circles (15 Hz -> 3 circles = 200ms)
-#define ENCTCHDLY 6
+#define ENCTCHDLY 10
 
 // Wheel resolution for fast scrub
 #define SCRUBRESFAST 1
@@ -29,15 +39,16 @@
 #define MOVERESFAST 10
 // Wheel resolution for edit cursor move, slow
 #define MOVERESSLOW 50
+
 // Blink interval / ratio (1 = appr. 30 Hz / 0.03 s)
 #define MYBLINKINTV 20
 #define MYBLINKRATIO 1
+
 // Execute only X Faders/Encoders at a time
 #define EXLIMIT 10
-// For finding sends (also in custom reascript actions, see MyCSurf_Aux_Send)
+
+// For finding sends see MyCSurf_Aux_Send)
 #define AUXSTRING "aux---%d"
-// Filename of ini file (in reaper ressources dir)
-#define INIFILE "csurf_us2400.ini"
 
 // float to int macro
 #define F2I(x) (int)((x) + 0.5)
@@ -70,33 +81,33 @@
 
 #include "csurf.h"
 
+
 // for debug  
 char debug[64];
 
 class CSurf_US2400;
 static bool g_csurf_mcpmode = true; 
 
-// display
-bool dsp_repaint = false;
-int dsp_width = -1;
-int dsp_height = -1;
-int dsp_x = -1;
-int dsp_y = -1;
-int dsp_open = 0;
+// DISPLAY
+bool stp_repaint = false;
+int stp_width = -1;
+int stp_height = -1;
+int stp_x = -1;
+int stp_y = -1;
+int stp_open = 0;
 
-WDL_String dsp_strings[48];
-int dsp_colors[24];
-unsigned long dsp_enc_touch = 0;
-unsigned long dsp_enc_touch_prev = 0;
-unsigned long dsp_fdr_touch = 0;
-unsigned long dsp_fdr_touch_prev = 0;
-unsigned long dsp_sel = 0;
-unsigned long dsp_rec = 0;
-unsigned long dsp_mute = 0;
-bool dsp_chan = false;
+WDL_String stp_strings[48];
+int stp_colors[24];
+unsigned long stp_enc_touch = 0;
+unsigned long stp_enc_touch_prev = 0;
+unsigned long stp_fdr_touch = 0;
+unsigned long stp_fdr_touch_prev = 0;
+unsigned long stp_sel = 0;
+unsigned long stp_rec = 0;
+unsigned long stp_mute = 0;
+bool stp_chan = false;
 
-
-void Dsp_Paint(HWND hwnd)
+void Stp_Paint(HWND hwnd)
 {
   RECT rect;
   GetWindowRect(hwnd, &rect);
@@ -142,11 +153,11 @@ void Dsp_Paint(HWND hwnd)
     }
 
     // draw and set background if applicable
-    if (dsp_colors[ch] != 0) {
+    if (stp_colors[ch] != 0) {
 
-      int r = GetRValue(dsp_colors[ch]) / 4 + GetRValue(bg_col) / 2;
-      int g = GetGValue(dsp_colors[ch]) / 4 + GetGValue(bg_col) / 2;
-      int b = GetBValue(dsp_colors[ch]) / 4 + GetBValue(bg_col) / 2;
+      int r = GetRValue(stp_colors[ch]) / 4 + GetRValue(bg_col) / 2;
+      int g = GetGValue(stp_colors[ch]) / 4 + GetGValue(bg_col) / 2;
+      int b = GetBValue(stp_colors[ch]) / 4 + GetBValue(bg_col) / 2;
 
       HBRUSH tkbg = CreateSolidBrush(RGB(r, g, b));
 
@@ -167,20 +178,20 @@ void Dsp_Paint(HWND hwnd)
 
     // draw text A
     SetTextColor(hdc, RGB(150, 150, 150));
-    if ( (!dsp_chan && (dsp_sel & (1 << ch))) || ((dsp_chan) && (dsp_enc_touch & (1 << ch))) )
+    if ( (!stp_chan && (stp_sel & (1 << ch))) || ((stp_chan) && (stp_enc_touch & (1 << ch))) )
       SetTextColor(hdc, RGB(250, 250, 250));
-    else if ( !dsp_chan && (dsp_rec & (1 << ch)) )
+    else if ( !stp_chan && (stp_rec & (1 << ch)) )
       SetTextColor(hdc, RGB(250, 60, 60));
 
     rect.top = F2I(padding);
     rect.bottom = F2I(single_height - padding);
-    DrawText(hdc, dsp_strings[ch].Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+    DrawText(hdc, stp_strings[ch].Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
 
     // draw touch
     rect.top = F2I(single_height);
     rect.bottom = F2I(single_height + touch_height);
 
-    if ( ((dsp_fdr_touch & (1 << ch)) != 0) || ((dsp_enc_touch & (1 << ch)) != 0) )
+    if ( ((stp_fdr_touch & (1 << ch)) != 0) || ((stp_enc_touch & (1 << ch)) != 0) )
     {
       FillRect(hdc, &rect, touch_bg);
     
@@ -194,11 +205,11 @@ void Dsp_Paint(HWND hwnd)
 
     // draw text B
     SetTextColor(hdc, RGB(250, 250, 250));
-    if ( !dsp_chan && (dsp_mute & (1 << ch)) ) SetTextColor(hdc, RGB(150, 150, 150));
+    if ( !stp_chan && (stp_mute & (1 << ch)) ) SetTextColor(hdc, RGB(150, 150, 150));
 
     rect.top = F2I(single_height + touch_height + padding);
     rect.bottom = F2I(win_height - padding);
-    DrawText(hdc, dsp_strings[ch + 24].Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+    DrawText(hdc, stp_strings[ch + 24].Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
 
     // dividers
     bool draw = false;
@@ -242,33 +253,33 @@ void Dsp_Paint(HWND hwnd)
   EndPaint(hwnd, &ps);
 }
 
-void Dsp_StoreWinCoords(HWND hwnd)
+void Stp_StoreWinCoords(HWND hwnd)
 {
   RECT rect;
   GetWindowRect(hwnd, &rect);
-  dsp_x = rect.left;
-  dsp_y = rect.top;
-  dsp_width = rect.right - rect.left;
-  dsp_height = rect.bottom - rect.top;
+  stp_x = rect.left;
+  stp_y = rect.top;
+  stp_width = rect.right - rect.left;
+  stp_height = rect.bottom - rect.top;
 }
 
 
-LRESULT CALLBACK Dsp_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Stp_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
   switch (uMsg)
   {
     case WM_PAINT:
-      Dsp_Paint(hwnd);
+      Stp_Paint(hwnd);
       break;
 
     case WM_SIZE:
-      dsp_repaint = true;
-      Dsp_StoreWinCoords(hwnd);
+      stp_repaint = true;
+      Stp_StoreWinCoords(hwnd);
       break;
 
     case WM_MOVE:
-      dsp_repaint = true;
-      Dsp_StoreWinCoords(hwnd);
+      stp_repaint = true;
+      Stp_StoreWinCoords(hwnd);
       break;
   }
 
@@ -276,6 +287,266 @@ LRESULT CALLBACK Dsp_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 }
 
 
+// ON SCREEN HELP
+
+WDL_String hlp_enc_str[3][4][2];   // pan/chan/aux | _/sh/f/m | _/fl
+
+WDL_String hlp_tksel_str[3][4];    // pan/chan/aux | _/sh/f/m
+WDL_String hlp_tksolo_str[4];      // _/sh/f/m
+WDL_String hlp_tkmute_str[4];      // _/sh/f/m
+WDL_String hlp_tkfdr_str[3][4][2]; // pan/chan/aux | _/sh/f/m | _/fl
+
+WDL_String hlp_mstsel_str[4];      // _/sh/f/m
+WDL_String hlp_clsolo_str[4];      // _/sh/f/m
+WDL_String hlp_mstfdr_str[4];      // _/sh/f/m
+
+WDL_String hlp_chan_str[3];        // pan/chan/aux
+WDL_String hlp_fkey_str[4];        // _/sh/f/m
+WDL_String hlp_shift_str[4];       // _/sh/f/m
+
+WDL_String hlp_keys_str[12][3][4]; // aux1-6/null/req/fwd/stop/play/rec | pan/chan/aux | _/sh/f/m
+WDL_String hlp_bank_str[2][3][4];  // bank -/+ | pan/chan/aux | _/sh/f/m
+WDL_String hlp_inout_str[2][4]; // in/out | _/sh/f/m
+
+// flip / chan / pan / mkey are static
+
+int hlp_mode = 0;
+int hlp_qkey = 0;
+bool hlp_flip = false;
+
+int hlp_open = 0;
+
+int hlp_margin = 15;
+int hlp_grid = 90;
+int hlp_box_size = 80;
+int hlp_sep = 20;
+
+
+void Hlp_DrawBox(const char* caption, int top, int left, COLORREF bg_col, COLORREF mode_col, COLORREF cap_col, WDL_String command, HDC* hdc_p)
+{
+  HPEN lgrey_ln = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+  RECT rect;
+
+  COLORREF text_col = RGB(255, 255, 255);
+  SetTextColor(*hdc_p, text_col);
+
+  int mode_border = 4;
+  int text_padding = 4;
+
+  if (mode_col != 0)
+  {
+    HBRUSH mode_bg = CreateSolidBrush(mode_col);  
+    rect.top = top - mode_border;
+    rect.left = left - mode_border;
+    rect.bottom = top + hlp_box_size + mode_border;
+    rect.right = left + hlp_box_size + mode_border;
+    FillRect(*hdc_p, &rect, mode_bg);
+    DeleteObject(mode_bg);
+  }
+
+  HBRUSH bg = CreateSolidBrush(bg_col);
+  rect.top = top;
+  rect.left = left;
+  rect.bottom = top + hlp_box_size;
+  rect.right = left + hlp_box_size;
+  FillRect(*hdc_p, &rect, bg);
+  DeleteObject(bg);
+    
+  HBRUSH cap_bg = CreateSolidBrush(cap_col);
+  rect.top = top;
+  rect.left = left;
+  rect.bottom = top + 20;
+  rect.right = left + hlp_box_size;
+  FillRect(*hdc_p, &rect, cap_bg);
+  DeleteObject(cap_bg);
+
+  SetBkColor(*hdc_p, cap_col);
+  rect.top    = top + text_padding;
+  rect.left   = left + text_padding;
+  rect.bottom = top + 20 - text_padding;
+  rect.right  = left + hlp_box_size - text_padding;
+  DrawText(*hdc_p, caption, -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+  
+  SelectObject(*hdc_p, lgrey_ln);
+  MoveToEx(*hdc_p, rect.left, top + 20, NULL);
+  LineTo(*hdc_p, rect.right, top + 20);
+
+  SetBkColor(*hdc_p, bg_col);
+  rect.top    = top + 20 + text_padding;
+  rect.left   = left + text_padding;
+  rect.bottom = top + hlp_box_size - text_padding;
+  rect.right  = left + hlp_box_size - text_padding;
+  DrawText(*hdc_p, command.Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+
+  DeleteObject(lgrey_ln);
+}
+
+void Hlp_Paint(HWND hwnd)
+{
+  RECT rect;
+
+  HDC hdc;
+  PAINTSTRUCT ps;
+  hdc = BeginPaint(hwnd, &ps);
+
+  HFONT hfont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+  HFONT rfont = (HFONT)SelectObject(hdc, hfont);
+
+  COLORREF bg_col = RGB(50, 50, 50);
+  COLORREF shift_col = RGB(50, 50, 100);
+  COLORREF fkey_col = RGB(100, 50, 50);
+  COLORREF mkey_col = RGB(50, 100, 50);
+  COLORREF pan_col = RGB(50, 100, 100);
+  COLORREF chan_col = RGB(100, 100, 50);
+  COLORREF aux_col = RGB(100, 50, 100);
+  COLORREF flip_col = RGB(100, 100, 100);
+
+  COLORREF flipbtn_col = flip_col;
+  int flip_i = 1;
+  if (!hlp_flip)
+  {
+    flip_col = bg_col;
+    flip_i = 0;
+  }
+
+  COLORREF mode_col = pan_col;
+  if (hlp_mode == 1) mode_col = chan_col;
+  else if (hlp_mode == 2) mode_col = aux_col;
+
+  COLORREF auxbtn_col = aux_col;
+  COLORREF qkey_col = bg_col;
+  if ((hlp_qkey > 0) || (hlp_mode == 1))
+  {
+    auxbtn_col = bg_col;
+    if (hlp_qkey == 1) qkey_col = shift_col;
+    else if (hlp_qkey == 2) qkey_col = fkey_col;
+    else if (hlp_qkey == 3) qkey_col = mkey_col;
+  }
+
+  COLORREF text_col = RGB(255, 255, 255);
+  SetTextColor(hdc, text_col);
+
+  HBRUSH standard_bg = CreateSolidBrush(bg_col);
+  HBRUSH mode_bg = CreateSolidBrush(mode_col);
+  HBRUSH qkey_bg = CreateSolidBrush(qkey_col);
+  
+  // global output
+  rect.top    = hlp_margin + 0*hlp_sep + 0*hlp_grid;  
+  rect.left   = hlp_margin + 2*hlp_sep + 4*hlp_grid;
+  rect.bottom = rect.top + 50;
+  rect.right  = hlp_margin + 2*hlp_sep + 7*hlp_grid + hlp_box_size;  
+  FillRect(hdc, &rect, standard_bg);
+
+  
+  SetBkColor(hdc, bg_col);
+  rect.top    += 7;
+  rect.left   += 7;
+  DrawText(hdc, "US-2400 On-Screen Help - F-Key + Shift to close", -1, &rect, 0);
+
+  rect.top    = hlp_margin + 0*hlp_sep + 0*hlp_grid + 25;  
+  rect.left   = hlp_margin + 2*hlp_sep + 4*hlp_grid;
+  rect.right  = hlp_margin + 2*hlp_sep + 6*hlp_grid;  
+  FillRect(hdc, &rect, mode_bg);
+  
+  SetBkColor(hdc, mode_col);
+  rect.top    += 7;
+  rect.left   += 7;
+  if (hlp_mode == 0) DrawText(hdc, "Mode: Normal (Pan)", -1, &rect, 0);
+  else if (hlp_mode == 1) DrawText(hdc, "Mode: Channel Strip", -1, &rect, 0);
+  else if (hlp_mode == 2) DrawText(hdc, "Mode: Aux Sends", -1, &rect, 0);
+
+  rect.top    = hlp_margin + 0*hlp_sep + 0*hlp_grid + 25;  
+  rect.left   = hlp_margin + 2*hlp_sep + 6*hlp_grid;
+  rect.right  = hlp_margin + 2*hlp_sep + 7*hlp_grid + hlp_box_size;  
+  FillRect(hdc, &rect, qkey_bg);
+
+  rect.top  += 7;
+  rect.left += 7;
+  SetBkColor(hdc, qkey_col);
+  if (hlp_qkey == 0) DrawText(hdc, "Qualifier Key: None", -1, &rect, 0);
+  else if (hlp_qkey == 1) DrawText(hdc, "Qualifier Key: Shift", -1, &rect, 0);
+  else if (hlp_qkey == 2) DrawText(hdc, "Qualifier Key: F-Key", -1, &rect, 0);
+  else if (hlp_qkey == 3) DrawText(hdc, "Qualifier Key: M-Key", -1, &rect, 0);
+
+  // draw fader tracks
+  rect.top    = hlp_margin + 1*hlp_sep + 4*hlp_grid;
+  rect.left   = hlp_margin + 0*hlp_sep + 0*hlp_grid + hlp_box_size / 2 - 2;
+  rect.bottom = hlp_margin + 2*hlp_sep + 6*hlp_grid + hlp_box_size;
+  rect.right  = hlp_margin + 0*hlp_sep + 0*hlp_grid + hlp_box_size / 2 + 2;
+  FillRect(hdc, &rect, standard_bg);
+
+  rect.left   = hlp_margin + 1*hlp_sep + 1*hlp_grid + hlp_box_size / 2 - 2;
+  rect.right  = hlp_margin + 1*hlp_sep + 1*hlp_grid + hlp_box_size / 2 + 2;
+  FillRect(hdc, &rect, standard_bg);
+
+
+  // draw boxes
+  Hlp_DrawBox("Encoders",       hlp_margin + 0*hlp_sep + 0*hlp_grid, hlp_margin + 0*hlp_sep + 0*hlp_grid, flip_col, mode_col, qkey_col, hlp_enc_str[hlp_mode][hlp_qkey][flip_i], &hdc);
+
+  Hlp_DrawBox("Tracks: Select", hlp_margin + 1*hlp_sep + 1*hlp_grid, hlp_margin + 0*hlp_sep + 0*hlp_grid, bg_col, mode_col, qkey_col, hlp_tksel_str[hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("Tracks: Solo",   hlp_margin + 1*hlp_sep + 2*hlp_grid, hlp_margin + 0*hlp_sep + 0*hlp_grid, bg_col, bg_col, qkey_col, hlp_tksolo_str[hlp_qkey], &hdc);
+  Hlp_DrawBox("Tracks: Mute",   hlp_margin + 1*hlp_sep + 3*hlp_grid, hlp_margin + 0*hlp_sep + 0*hlp_grid, bg_col, bg_col, qkey_col, hlp_tkmute_str[hlp_qkey], &hdc);
+  Hlp_DrawBox("Track Faders",   hlp_margin + 2*hlp_sep + 4*hlp_grid, hlp_margin + 0*hlp_sep + 0*hlp_grid, flip_col, mode_col, qkey_col, hlp_tkfdr_str[hlp_mode][hlp_qkey][flip_i], &hdc);
+
+  Hlp_DrawBox("Master Select",  hlp_margin + 1*hlp_sep + 1*hlp_grid, hlp_margin + 1*hlp_sep + 1*hlp_grid, bg_col, bg_col, qkey_col, hlp_mstsel_str[hlp_qkey], &hdc);
+  Hlp_DrawBox("Clear Solo",     hlp_margin + 1*hlp_sep + 2*hlp_grid, hlp_margin + 1*hlp_sep + 1*hlp_grid, bg_col, bg_col, qkey_col, hlp_clsolo_str[hlp_qkey], &hdc);
+  Hlp_DrawBox("Flip",           hlp_margin + 1*hlp_sep + 3*hlp_grid, hlp_margin + 1*hlp_sep + 1*hlp_grid, flipbtn_col, bg_col, flipbtn_col, WDL_String("Enter Flip Mode"), &hdc);
+  Hlp_DrawBox("Master Fader",   hlp_margin + 2*hlp_sep + 4*hlp_grid, hlp_margin + 1*hlp_sep + 1*hlp_grid, bg_col, bg_col, qkey_col, hlp_mstfdr_str[hlp_qkey], &hdc);
+
+  Hlp_DrawBox("Chan",           hlp_margin + 1*hlp_sep + 1*hlp_grid, hlp_margin + 2*hlp_sep + 2*hlp_grid, chan_col, mode_col, chan_col, hlp_chan_str[hlp_mode], &hdc);
+  Hlp_DrawBox("Pan",            hlp_margin + 1*hlp_sep + 2*hlp_grid, hlp_margin + 2*hlp_sep + 2*hlp_grid, pan_col, mode_col, pan_col, WDL_String("Enter Normal (Pan) Mode"), &hdc);
+
+  Hlp_DrawBox("1",              hlp_margin + 1*hlp_sep + 1*hlp_grid, hlp_margin + 2*hlp_sep + 3*hlp_grid, auxbtn_col, mode_col, qkey_col, hlp_keys_str[0][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("2",              hlp_margin + 1*hlp_sep + 1*hlp_grid, hlp_margin + 2*hlp_sep + 4*hlp_grid, auxbtn_col, mode_col, qkey_col, hlp_keys_str[1][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("3",              hlp_margin + 1*hlp_sep + 1*hlp_grid, hlp_margin + 2*hlp_sep + 5*hlp_grid, auxbtn_col, mode_col, qkey_col, hlp_keys_str[2][hlp_mode][hlp_qkey], &hdc);
+
+  Hlp_DrawBox("4",              hlp_margin + 1*hlp_sep + 2*hlp_grid, hlp_margin + 2*hlp_sep + 3*hlp_grid, auxbtn_col, mode_col, qkey_col, hlp_keys_str[3][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("5",              hlp_margin + 1*hlp_sep + 2*hlp_grid, hlp_margin + 2*hlp_sep + 4*hlp_grid, auxbtn_col, mode_col, qkey_col, hlp_keys_str[4][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("6",              hlp_margin + 1*hlp_sep + 2*hlp_grid, hlp_margin + 2*hlp_sep + 5*hlp_grid, auxbtn_col, mode_col, qkey_col, hlp_keys_str[5][hlp_mode][hlp_qkey], &hdc);
+
+  Hlp_DrawBox("Null",           hlp_margin + 1*hlp_sep + 3*hlp_grid, hlp_margin + 2*hlp_sep + 6*hlp_grid, bg_col, mode_col, qkey_col, hlp_keys_str[6][hlp_mode][hlp_qkey], &hdc);
+
+  if (!METERMODE) 
+    Hlp_DrawBox("(Meter)",      hlp_margin + 1*hlp_sep + 1*hlp_grid, hlp_margin + 2*hlp_sep + 7*hlp_grid, mkey_col, bg_col, qkey_col, WDL_String("M-Key"), &hdc);
+  
+  Hlp_DrawBox("F-Key",          hlp_margin + 1*hlp_sep + 2*hlp_grid, hlp_margin + 2*hlp_sep + 7*hlp_grid, fkey_col, bg_col, qkey_col, hlp_fkey_str[hlp_qkey], &hdc);
+
+  Hlp_DrawBox("Bank -",         hlp_margin + 2*hlp_sep + 5*hlp_grid, hlp_margin + 2*hlp_sep + 2*hlp_grid, bg_col, mode_col, qkey_col, hlp_bank_str[0][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("Bank +",         hlp_margin + 2*hlp_sep + 5*hlp_grid, hlp_margin + 2*hlp_sep + 3*hlp_grid, bg_col, mode_col, qkey_col, hlp_bank_str[1][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("In",             hlp_margin + 2*hlp_sep + 5*hlp_grid, hlp_margin + 2*hlp_sep + 4*hlp_grid, bg_col, bg_col, qkey_col, hlp_inout_str[0][hlp_qkey], &hdc);
+  Hlp_DrawBox("Out",            hlp_margin + 2*hlp_sep + 5*hlp_grid, hlp_margin + 2*hlp_sep + 5*hlp_grid, bg_col, bg_col, qkey_col, hlp_inout_str[1][hlp_qkey], &hdc);
+  Hlp_DrawBox("Shift",          hlp_margin + 2*hlp_sep + 5*hlp_grid, hlp_margin + 2*hlp_sep + 7*hlp_grid, shift_col, bg_col, qkey_col, hlp_shift_str[hlp_qkey], &hdc);
+
+  Hlp_DrawBox("Rewind",         hlp_margin + 2*hlp_sep + 6*hlp_grid, hlp_margin + 2*hlp_sep + 2*hlp_grid, bg_col, mode_col, qkey_col, hlp_keys_str[7][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("Fast Forward",   hlp_margin + 2*hlp_sep + 6*hlp_grid, hlp_margin + 2*hlp_sep + 3*hlp_grid, bg_col, mode_col, qkey_col, hlp_keys_str[8][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("Stop",           hlp_margin + 2*hlp_sep + 6*hlp_grid, hlp_margin + 2*hlp_sep + 4*hlp_grid, bg_col, mode_col, qkey_col, hlp_keys_str[9][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("Play",           hlp_margin + 2*hlp_sep + 6*hlp_grid, hlp_margin + 2*hlp_sep + 5*hlp_grid, bg_col, mode_col, qkey_col, hlp_keys_str[10][hlp_mode][hlp_qkey], &hdc);
+  Hlp_DrawBox("Record",         hlp_margin + 2*hlp_sep + 6*hlp_grid, hlp_margin + 2*hlp_sep + 7*hlp_grid, bg_col, mode_col, qkey_col, hlp_keys_str[11][hlp_mode][hlp_qkey], &hdc);
+
+  SelectObject(hdc, rfont);
+  DeleteObject(hfont);
+  DeleteObject(rfont);
+
+  DeleteObject(standard_bg);
+  DeleteObject(mode_bg);
+  DeleteObject(qkey_bg);
+}
+
+
+LRESULT CALLBACK Hlp_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  switch (uMsg)
+  {
+    case WM_PAINT:
+      Hlp_Paint(hwnd);
+      break;
+  }
+
+  return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+
+// CSURF CLASS
 
 class CSurf_US2400 : public IReaperControlSurface
 {
@@ -290,7 +561,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
 
   // cmd_ids
-  int cmd_ids[3][3][12]; //[none/shift/fkey][pan/chan/aux][1-6/null/rew/ffwd/stop/play/rec]
+  int cmd_ids[4][3][12]; //[none/shift/fkey/mkey][pan/chan/aux][1-6/null/rew/ffwd/stop/play/rec]
 
   // buffer for fader data
   bool waitformsb;
@@ -311,8 +582,10 @@ class CSurf_US2400 : public IReaperControlSurface
   // caches
   int cache_faders[25];
   int cache_enc[24];
+  int cache_meters[24];
   unsigned long cache_upd_faders;
   unsigned long cache_upd_enc;
+  unsigned long cache_upd_meters;
   char cache_exec;
   bool master_sel;
   bool insert_fx_hook;
@@ -327,7 +600,8 @@ class CSurf_US2400 : public IReaperControlSurface
   char m_aux;
 
   // qualifier keys
-  bool q_fkey, q_shift;
+  bool q_fkey, q_shift, q_mkey;
+  int s_mkey_on;
 
   // for channel strip
   MediaTrack* chan_rpr_tk;
@@ -346,12 +620,13 @@ class CSurf_US2400 : public IReaperControlSurface
   double s_ts_end;
 
   // display
-  HWND dsp_hwnd;
-  WNDCLASSEX dsp_class;
+  HWND stp_hwnd;
+  WNDCLASSEX stp_class;
 
-  // inifile
-  WDL_String ini_path;
-  HANDLE ini_file;
+  // on screen help
+  HWND hlp_hwnd;
+  WNDCLASSEX hlp_class;
+
 
 
   //////// MIDI ////////
@@ -386,8 +661,8 @@ class CSurf_US2400 : public IReaperControlSurface
           case 0x62 : OnClrSolo(btn_state); break;
           case 0x63 : if (btn_state) OnFlip(); break;
           case 0x64 : if (btn_state) OnChan(); break;
+          case 0x6b : OnMeter(); break;
           case 0x6c : if (btn_state) OnPan(); break;
-          //case 0x6b : if (btn_state) OnMeter(); break; // maybe later (see below)
           case 0x6d : OnFKey(btn_state); break;
           case 0x65 : if (btn_state) OnAux(1); break;
           case 0x66 : if (btn_state) OnAux(2); break;
@@ -488,10 +763,21 @@ class CSurf_US2400 : public IReaperControlSurface
     MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
     if (ch_id < 24)
     {
-      if (q_fkey) MyCSurf_SwitchPhase(rpr_tk);
-      else if (q_shift) CSurf_OnRecArmChange(rpr_tk, -1);
-      else if (m_chan) MySetSurface_Chan_SelectTrack(ch_id, false);
-      else CSurf_OnSelectedChange(rpr_tk, -1);
+      if (q_fkey)
+      {
+        if (m_aux > 0) MyCSurf_AddAuxSend(rpr_tk, m_aux, 0);
+        else MyCSurf_SwitchPhase(rpr_tk);
+
+      } else if (q_shift)
+      {
+        if (m_aux > 0) MyCSurf_RemoveAuxSend(rpr_tk, m_aux);
+        else CSurf_OnRecArmChange(rpr_tk, -1);
+
+      } else if (m_chan)
+      {
+        MySetSurface_Chan_SelectTrack(ch_id, false);
+
+      } else CSurf_OnSelectedChange(rpr_tk, -1);
     
     } else if (ch_id == 24) OnMasterSel();
   } // OnTrackSel
@@ -527,7 +813,7 @@ class CSurf_US2400 : public IReaperControlSurface
       s_touch_fdr = s_touch_fdr & (~(1 << ch_id));
     }
     
-    Dsp_Update(ch_id);
+    Stp_Update(ch_id);
   } // OnFaderTouch
 
 
@@ -634,7 +920,7 @@ class CSurf_US2400 : public IReaperControlSurface
       } // if (ismaster), else if (isactive)
     } // if (exists)
 
-    Dsp_Update(ch_id);
+    Stp_Update(ch_id);
     MySetSurface_UpdateFader(ch_id);
   } // OnFaderChange()
 
@@ -792,7 +1078,7 @@ class CSurf_US2400 : public IReaperControlSurface
       } // if (m_flip), else
 
       MySetSurface_UpdateEncoder(ch_id); // because touched track doesn't get updated
-      Dsp_Update(ch_id);
+      Stp_Update(ch_id);
 
       s_touch_enc[ch_id] = ENCTCHDLY;
 
@@ -820,6 +1106,7 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     if (btn_state)
       if (q_fkey) MyCSurf_UnmuteAllTracks();
+      else if (q_shift) MyCSurf_ToggleMute(Cnv_ChannelIDToMediaTrack(24), false);
       else MyCSurf_UnsoloAllTracks();
 
     MySetSurface_UpdateButton(0x62, btn_state, false);
@@ -856,6 +1143,7 @@ class CSurf_US2400 : public IReaperControlSurface
     char qkey = 0;
     if (q_shift) qkey = 1;
     else if (q_fkey) qkey = 2;
+    else if (q_mkey) qkey = 3;
 
     if (qkey == 0)
     {
@@ -879,9 +1167,24 @@ class CSurf_US2400 : public IReaperControlSurface
   } // OnAux()
 
 
-  // METER MODE
-  
-  /* Maybe later. I don't think it's that important (and I don't know how to do it) */
+  void OnMeter()
+  {
+    // reset holds
+    if (METERMODE) MySetSurface_OutputMeters(true);
+    // reset button
+    else {
+      q_mkey = !q_mkey;
+      if (q_mkey) 
+      {
+        s_mkey_on = MDELAY;
+        hlp_qkey = 3;
+      } else hlp_qkey = 0;
+
+      Hlp_Update();
+
+      MySetSurface_UpdateButton(0x6b, q_mkey, false);
+    }
+  } // OnMeter
 
 
   // QUALIFIERS
@@ -890,8 +1193,8 @@ class CSurf_US2400 : public IReaperControlSurface
   {
     if ((btn_state && q_shift) && (s_initdone))
     {
-      if (dsp_hwnd == NULL) Dsp_OpenWindow();
-      else Dsp_CloseWindow();
+      if (stp_hwnd == NULL) Stp_OpenWindow();
+      else Stp_CloseWindow();
     } 
     MySetSurface_ToggleFKey(btn_state);
   } // OnFKey()
@@ -899,11 +1202,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void OnShift(bool btn_state)
   {
-    if ((btn_state && q_fkey) && (s_initdone))
-    {
-      if (dsp_hwnd == NULL) Dsp_OpenWindow();
-      else Dsp_CloseWindow();
-    } 
+    if ((btn_state && q_fkey) && (s_initdone)) Hlp_ToggleWindow();
     MySetSurface_ToggleShift(btn_state);
   } // OnShift()
 
@@ -919,6 +1218,7 @@ class CSurf_US2400 : public IReaperControlSurface
     char qkey = 0;
     if (q_shift) qkey = 1;
     else if (q_fkey) qkey = 2;
+    else if (q_mkey) qkey = 3;
 
     if ((qkey == 0) && (cmd_ids[0][mode][7] == -1)) CSurf_OnRew(1);
     else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(0);
@@ -935,6 +1235,7 @@ class CSurf_US2400 : public IReaperControlSurface
     char qkey = 0;
     if (q_shift) qkey = 1;
     else if (q_fkey) qkey = 2;
+    else if (q_mkey) qkey = 3;
 
     if ((qkey == 0) && (cmd_ids[0][mode][8] == -1)) CSurf_OnFwd(1);
     else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(1);
@@ -951,6 +1252,7 @@ class CSurf_US2400 : public IReaperControlSurface
     char qkey = 0;
     if (q_shift) qkey = 1;
     else if (q_fkey) qkey = 2;
+    else if (q_mkey) qkey = 3;
 
     if ((qkey == 0) && (cmd_ids[0][mode][9] == -1)) CSurf_OnStop();
     else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(2);
@@ -967,6 +1269,7 @@ class CSurf_US2400 : public IReaperControlSurface
     char qkey = 0;
     if (q_shift) qkey = 1;
     else if (q_fkey) qkey = 2;
+    else if (q_mkey) qkey = 3;
 
     if ((qkey == 0) && (cmd_ids[0][mode][10] == -1)) CSurf_OnPlay(); 
     else if ((qkey == 1) && (cmd_ids[1][mode][10] == -1)) MyCSurf_Auto_SetMode(3);
@@ -983,6 +1286,7 @@ class CSurf_US2400 : public IReaperControlSurface
     char qkey = 0;
     if (q_shift) qkey = 1;
     else if (q_fkey) qkey = 2;
+    else if (q_mkey) qkey = 3;
 
     if ((qkey == 0) && (cmd_ids[0][mode][11] == -1)) MyCSurf_OnRec();
     else Main_OnCommand(cmd_ids[qkey][mode][11], 0);
@@ -1002,6 +1306,7 @@ class CSurf_US2400 : public IReaperControlSurface
       char qkey = 0;
       if (q_shift) qkey = 1;
       else if (q_fkey) qkey = 2;
+      else if (q_mkey) qkey = 3;
 
       Main_OnCommand(cmd_ids[qkey][mode][6], 0);
     }
@@ -1059,7 +1364,7 @@ class CSurf_US2400 : public IReaperControlSurface
     }
 
     // keep lit if loop activated
-    if (s_loop) btn_state = true;
+    if (s_loop_all) btn_state = true;
     MySetSurface_UpdateButton(0x72, btn_state, false);
   } // OnIn()
 
@@ -1100,45 +1405,45 @@ class CSurf_US2400 : public IReaperControlSurface
 
   ////// DISPLAY //////
 
-  void Dsp_OpenWindow()
+  void Stp_OpenWindow()
   { 
-    if (dsp_hwnd == NULL)
+    if (stp_hwnd == NULL)
     {
-      if (dsp_width == -1 || dsp_height == -1)
+      if (stp_width == -1 || stp_height == -1)
       {
         RECT scr;
         SystemParametersInfo(SPI_GETWORKAREA, 0, &scr, 0);
-        dsp_width = scr.right - scr.left;
-        dsp_height = 80;
-        dsp_x = 0;
-        dsp_y = scr.bottom - dsp_height;
+        stp_width = scr.right - scr.left;
+        stp_height = 80;
+        stp_x = 0;
+        stp_y = scr.bottom - stp_height;
       }
              
-      dsp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE, "dsp", "US-2400 Display", WS_THICKFRAME | WS_POPUP | WS_DISABLED, dsp_x, dsp_y, dsp_width, dsp_height, NULL, NULL, g_hInst, NULL);
+      stp_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE, "stp", "US-2400 Display", WS_THICKFRAME | WS_POPUP, stp_x, stp_y, stp_width, stp_height, NULL, NULL, g_hInst, NULL);
     }
 
-    for (int ch = 0; ch < 24; ch++) Dsp_Update(ch);
+    for (int ch = 0; ch < 24; ch++) Stp_Update(ch);
 
-    ShowWindow(dsp_hwnd, SW_SHOW);
-    UpdateWindow(dsp_hwnd);
+    ShowWindow(stp_hwnd, SW_SHOW);
+    UpdateWindow(stp_hwnd);
 
-    dsp_open = 1;
-  }
+    stp_open = 1;
+  } // Stp_OpenWindow
 
 
-  void Dsp_CloseWindow()
+  void Stp_CloseWindow()
   {
-    if (dsp_hwnd != NULL)
+    if (stp_hwnd != NULL)
     {
-      DestroyWindow(dsp_hwnd);
-      dsp_hwnd = NULL;
+      DestroyWindow(stp_hwnd);
+      stp_hwnd = NULL;
     }
 
-    dsp_open = 0;
-  }
+    stp_open = 0;
+  } // Stp_CloseWindow
 
 
-  void Dsp_Update(int ch)
+  void Stp_Update(int ch)
   {
     if ((ch >= 0) && (ch < 24))
     {
@@ -1173,25 +1478,25 @@ class CSurf_US2400 : public IReaperControlSurface
         GetTrackState(tk, &flags);
 
         // muted
-        if ( (bool)(flags & 8) ) dsp_mute = dsp_mute | (1 << ch);
-        else dsp_mute = dsp_mute & (~(1 << ch));
+        if ( (bool)(flags & 8) ) stp_mute = stp_mute | (1 << ch);
+        else stp_mute = stp_mute & (~(1 << ch));
 
         // selected
-        if ( (bool)(flags & 2) ) dsp_sel = dsp_sel | (1 << ch);
-        else dsp_sel = dsp_sel & (~(1 << ch));
+        if ( (bool)(flags & 2) ) stp_sel = stp_sel | (1 << ch);
+        else stp_sel = stp_sel & (~(1 << ch));
 
         // armed
-        if ( (bool)(flags & 64) ) dsp_rec = dsp_rec | (1 << ch);
-        else dsp_rec = dsp_rec & (~(1 << ch));
+        if ( (bool)(flags & 64) ) stp_rec = stp_rec | (1 << ch);
+        else stp_rec = stp_rec & (~(1 << ch));
 
       } else
       {
         tk_num_c = "";
         tk_name = "";
-        dsp_colors[ch] = 0;
-        dsp_mute = dsp_mute & (~(1 << ch));
-        dsp_sel = dsp_sel & (~(1 << ch));
-        dsp_rec = dsp_rec & (~(1 << ch));
+        stp_colors[ch] = 0;
+        stp_mute = stp_mute & (~(1 << ch));
+        stp_sel = stp_sel & (~(1 << ch));
+        stp_rec = stp_rec & (~(1 << ch));
       }
 
 
@@ -1220,69 +1525,416 @@ class CSurf_US2400 : public IReaperControlSurface
 
       // transmit
 
-      dsp_chan = false;
-      dsp_colors[ch] = GetTrackColor(tk);
-      dsp_strings[ch + 24] = tk_name;
-      dsp_strings[ch] = tk_num_c;
+      stp_chan = false;
+      stp_colors[ch] = GetTrackColor(tk);
+      stp_strings[ch + 24] = tk_name;
+      stp_strings[ch] = tk_num_c;
 
       if (m_chan)
       {
-        dsp_chan = true;
-        dsp_strings[ch] = WDL_String(par_val);
+        stp_chan = true;
+        stp_strings[ch] = WDL_String(par_val);
         
         if ( ( !m_flip && ((s_touch_fdr & (1 << ch)) == 0) ) || ( m_flip && (s_touch_enc[ch] == 0) ) )
         {
-          dsp_colors[ch] = 0;
-          dsp_strings[ch + 24] = par_name;
+          stp_colors[ch] = 0;
+          stp_strings[ch + 24] = par_name;
         }
       }
 
       // keep only alphanumeric, replace everything else with space
-      dsp_strings[ch + 24] = Hlp_Alphanumeric(dsp_strings[ch + 24]);
+      stp_strings[ch + 24] = Utl_Alphanumeric(stp_strings[ch + 24]);
 
-      dsp_repaint = true;
+      stp_repaint = true;
+    }
+  } // Stp_Update
+
+
+  void Stp_RetrieveCoords()
+  {
+    if (HasExtState("US2400", "stp_x")) stp_x = atoi(GetExtState("US2400", "stp_x"));
+    else stp_x = -1;
+
+    if (HasExtState("US2400", "stp_y")) stp_y = atoi(GetExtState("US2400", "stp_y"));
+    else stp_y = -1;
+
+    if (HasExtState("US2400", "stp_height")) stp_height = atoi(GetExtState("US2400", "stp_height"));
+    else stp_height = -1;
+
+    if (HasExtState("US2400", "stp_width")) stp_width = atoi(GetExtState("US2400", "stp_width"));
+    else stp_width = -1;    
+
+    if (HasExtState("US2400", "stp_open")) stp_open = atoi(GetExtState("US2400", "stp_open"));
+    else stp_open = 0;
+  } // Stp_RetrieveCoords
+
+
+  void Stp_SaveCoords()
+  {
+    char buffer[32];
+    
+    sprintf(buffer, "%d", stp_x);
+    SetExtState("US2400", "stp_x", buffer, true);
+
+    sprintf(buffer, "%d", stp_y);
+    SetExtState("US2400", "stp_y", buffer, true);
+
+    sprintf(buffer, "%d", stp_width);
+    SetExtState("US2400", "stp_width", buffer, true);
+
+    sprintf(buffer, "%d", stp_height);
+    SetExtState("US2400", "stp_height", buffer, true);
+
+    sprintf(buffer, "%d", stp_open);
+    SetExtState("US2400", "stp_open", buffer, true);
+  } // Stp_SaveCoords
+
+
+
+  ////// ONSCREEN HELP //////  
+
+  void Hlp_ToggleWindow()
+  { 
+    if (hlp_open == 0)
+    {
+      if (hlp_hwnd == NULL)
+      {
+        RECT scr;
+        SystemParametersInfo(SPI_GETWORKAREA, 0, &scr, 0);
+        int width = 2*hlp_margin + 2*hlp_sep + 7*hlp_grid + hlp_box_size;
+        int height = 2*hlp_margin + 2*hlp_sep + 6*hlp_grid + hlp_box_size;
+        int left = scr.right / 2 - width / 2;
+        int top = scr.bottom / 2 - height / 2;
+
+              
+        hlp_hwnd = CreateWindowEx(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_NOACTIVATE, "hlp", "US-2400 On-Screen Help", WS_POPUP | WS_BORDER, left, top, width, height, NULL, NULL, g_hInst, NULL);
+       
+        SetLayeredWindowAttributes(hlp_hwnd, NULL, 220, LWA_ALPHA);
+      }
+
+      ShowWindow(hlp_hwnd, SW_SHOW);
+      UpdateLayeredWindow(hlp_hwnd, NULL, NULL, NULL, NULL, NULL, RGB(0, 0, 0), NULL, ULW_COLORKEY);
+
+      hlp_open = 1;
+    } else {
+      if (hlp_hwnd != NULL)
+      {
+        DestroyWindow(hlp_hwnd);
+        hlp_hwnd = NULL;
+      }
+
+      hlp_open = 0; 
+    }
+  } // Hlp_ToggleWindow
+
+
+  void Hlp_Update()
+  {
+    if (hlp_hwnd != NULL)
+    {
+      InvalidateRect(hlp_hwnd, NULL, true);
+      UpdateWindow(hlp_hwnd);
     }
   }
 
 
-  void Dsp_RetrieveCoords()
+  void Hlp_FillStrs()
   {
-    if (HasExtState("US2400", "dsp_x")) dsp_x = atoi(GetExtState("US2400", "dsp_x"));
-    else dsp_x = -1;
+    hlp_enc_str[0][0][0] = WDL_String("Track Pan");   // pan | _ | _
+    hlp_enc_str[0][0][1] = WDL_String("Track Volume");   // pan | _ | fl
+    hlp_enc_str[0][1][0] = WDL_String("Track Pan -> C");   // pan | sh | _
+    hlp_enc_str[0][1][1] = WDL_String("Track Volume -> 0 dB");   // pan | sh | fl
+    hlp_enc_str[0][2][0] = WDL_String("Track Stereo Width");   // pan | f | _
+    hlp_enc_str[0][2][1] = WDL_String("Track Volume -> -inf dB");   // pan | f | fl
+    hlp_enc_str[0][3][0] = WDL_String("Track Pan");   // pan | m | _
+    hlp_enc_str[0][3][1] = WDL_String("Track Volume");   // pan | m | fl
+    hlp_enc_str[1][0][0] = WDL_String("FX Parameter");   // chan | _ | _
+    hlp_enc_str[1][0][1] = WDL_String("Track Volume");   // chan | _ | fl
+    hlp_enc_str[1][1][0] = WDL_String("FX Parameter (Toggle)");   // chan | sh | _
+    hlp_enc_str[1][1][1] = WDL_String("Track Volume -> 0 dB");   // chan | sh | fl
+    hlp_enc_str[1][2][0] = WDL_String("FX Parameter (Fine)");   // chan | f | _
+    hlp_enc_str[1][2][1] = WDL_String("Track Volume -> -inf dB");   // chan | f | fl
+    hlp_enc_str[1][3][0] = WDL_String("FX Parameter");   // chan | m | _
+    hlp_enc_str[1][3][1] = WDL_String("Track Volume");   // chan | m | fl
+    hlp_enc_str[2][0][0] = WDL_String("Aux Send Level");   // aux | _ | _
+    hlp_enc_str[2][0][1] = WDL_String("Aux Send Pan");   // aux | _ | fl
+    hlp_enc_str[2][1][0] = WDL_String("Aux Send Level -> 0 dB");   // aux | sh | _
+    hlp_enc_str[2][1][1] = WDL_String("Aux Send Pan -> C");   // aux | sh | fl
+    hlp_enc_str[2][2][0] = WDL_String("Aux Send Level -> -inf dB");   // aux | f | _
+    hlp_enc_str[2][2][1] = WDL_String("Aux Send Pan");   // aux | f | fl
+    hlp_enc_str[2][3][0] = WDL_String("Aux Send Level");   // aux | m | _
+    hlp_enc_str[2][3][1] = WDL_String("Aux Send Pan");   // aux | m | fl
 
-    if (HasExtState("US2400", "dsp_y")) dsp_y = atoi(GetExtState("US2400", "dsp_y"));
-    else dsp_y = -1;
+    hlp_tkfdr_str[0][0][0] = WDL_String("Track Volume");   // pan | _ | _
+    hlp_tkfdr_str[0][0][1] = WDL_String("Track Pan");   // pan | _ | fl
+    hlp_tkfdr_str[0][1][0] = WDL_String("Track Volume -> 0 dB");   // pan | sh | _
+    hlp_tkfdr_str[0][1][1] = WDL_String("Track Pan -> C");   // pan | sh | fl
+    hlp_tkfdr_str[0][2][0] = WDL_String("Track Volume -> - inf dB");   // pan | f | _
+    hlp_tkfdr_str[0][2][1] = WDL_String("Track Stereo Width");   // pan | f | fl
+    hlp_tkfdr_str[0][3][0] = WDL_String("Track Volume");   // pan | m | _
+    hlp_tkfdr_str[0][3][1] = WDL_String("Track Pan");   // pan | m | fl
+    hlp_tkfdr_str[1][0][0] = WDL_String("Track Volume");   // chan | _ | _
+    hlp_tkfdr_str[1][0][1] = WDL_String("FX Parameter");   // chan | _ | fl
+    hlp_tkfdr_str[1][1][0] = WDL_String("Track Volume -> 0 dB");   // chan | sh | _
+    hlp_tkfdr_str[1][1][1] = WDL_String("FX Parameter -> max");   // chan | sh | fl
+    hlp_tkfdr_str[1][2][0] = WDL_String("Track Volume -> -inf dB");   // chan | f | _
+    hlp_tkfdr_str[1][2][1] = WDL_String("FX Parameter -> min");   // chan | f | fl
+    hlp_tkfdr_str[1][3][0] = WDL_String("Track Volume");   // chan | m | _
+    hlp_tkfdr_str[1][3][1] = WDL_String("FX Parameter");   // chan | m | fl
+    hlp_tkfdr_str[2][0][0] = WDL_String("Track Volume");   // aux | _ | _
+    hlp_tkfdr_str[2][0][1] = WDL_String("Aux Send Level");   // aux | _ | fl
+    hlp_tkfdr_str[2][1][0] = WDL_String("Track Volume -> 0 dB");   // aux | sh | _
+    hlp_tkfdr_str[2][1][1] = WDL_String("Aux Send Level -> 0 dB");   // aux | sh | fl
+    hlp_tkfdr_str[2][2][0] = WDL_String("Track Volume -> - inf dB");   // aux | f | _
+    hlp_tkfdr_str[2][2][1] = WDL_String("Aux Send Level -> - inf dB");   // aux | f | fl
+    hlp_tkfdr_str[2][3][0] = WDL_String("Track Volume");   // aux | m | _
+    hlp_tkfdr_str[2][3][1] = WDL_String("Aux Send Level");   // aux | m | fl
 
-    if (HasExtState("US2400", "dsp_height")) dsp_height = atoi(GetExtState("US2400", "dsp_height"));
-    else dsp_height = -1;
+    hlp_tksel_str[0][0] = WDL_String("Select Track");    // pan | _
+    hlp_tksel_str[0][1] = WDL_String("Arm Track for Record");    // pan | sh
+    hlp_tksel_str[0][2] = WDL_String("Switch Phase");    // pan | f
+    hlp_tksel_str[0][3] = WDL_String("Select Track");    // pan | m
+    hlp_tksel_str[1][0] = WDL_String("Select Track for Channel Strip");    // chan | _
+    hlp_tksel_str[1][1] = WDL_String("Arm Track for Record");    // chan | sh
+    hlp_tksel_str[1][2] = WDL_String("Switch Phase");    // chan | f
+    hlp_tksel_str[1][3] = WDL_String("Select Track for Channel Strip");    // chan | m
+    hlp_tksel_str[2][0] = WDL_String("Select Track");    // aux | _
+    hlp_tksel_str[2][1] = WDL_String("Remove Aux Send");    // aux | sh
+    hlp_tksel_str[2][2] = WDL_String("Add Aux Send");    // aux | f
+    hlp_tksel_str[2][3] = WDL_String("Select Track");    // aux | m
 
-    if (HasExtState("US2400", "dsp_width")) dsp_width = atoi(GetExtState("US2400", "dsp_width"));
-    else dsp_width = -1;    
+    hlp_tksolo_str[0] = WDL_String("Solo Track");      // _
+    hlp_tksolo_str[1] = WDL_String("Solo This Track Only");      // sh
+    hlp_tksolo_str[2] = WDL_String("Solo Track");      // f
+    hlp_tksolo_str[3] = WDL_String("Solo Track");      // m
 
-    if (HasExtState("US2400", "dsp_open")) dsp_open = atoi(GetExtState("US2400", "dsp_open"));
-    else dsp_open = 0;
-  }
+    hlp_tkmute_str[0] = WDL_String("Mute Track");      // _
+    hlp_tkmute_str[1] = WDL_String("Mute This Track Only");      // sh
+    hlp_tkmute_str[2] = WDL_String("Bypass All Track FX");      // f
+    hlp_tkmute_str[3] = WDL_String("Mute Track");      // m
 
+    hlp_mstsel_str[0] = WDL_String("Select Tracks: None / All");      // _
+    hlp_mstsel_str[1] = WDL_String("Select Master");      // sh
+    hlp_mstsel_str[2] = WDL_String("Select Tracks: None / All");      // f
+    hlp_mstsel_str[3] = WDL_String("Select Tracks: None / All");      // m
 
-  void Dsp_SaveCoords()
-  {
-    char buffer[32];
+    hlp_clsolo_str[0] = WDL_String("Clear all Solos");      // _
+    hlp_clsolo_str[1] = WDL_String("Unmute Master");      // sh
+    hlp_clsolo_str[2] = WDL_String("Clear all Mutes");      // f
+    hlp_clsolo_str[3] = WDL_String("Clear all Solos");      // m
     
-    sprintf(buffer, "%d", dsp_x);
-    SetExtState("US2400", "dsp_x", buffer, true);
+    hlp_mstfdr_str[0] = WDL_String("Master Volume");      // _
+    hlp_mstfdr_str[1] = WDL_String("Master Volume -> 0 dB");      // sh
+    hlp_mstfdr_str[2] = WDL_String("Master Volume -> - inf dB");      // f
+    hlp_mstfdr_str[3] = WDL_String("Master Volume");      // m
 
-    sprintf(buffer, "%d", dsp_y);
-    SetExtState("US2400", "dsp_y", buffer, true);
+    hlp_chan_str[0] = WDL_String("Enter Channnel Strip Mode");      // pan
+    hlp_chan_str[1] = WDL_String("Exit Channnel Strip Mode (Enter Pan Mode)");      // chan
+    hlp_chan_str[2] = WDL_String("Enter Channnel Strip Mode");      // aux
 
-    sprintf(buffer, "%d", dsp_width);
-    SetExtState("US2400", "dsp_width", buffer, true);
+    hlp_fkey_str[0] = WDL_String("");      // _
+    hlp_fkey_str[1] = WDL_String("Open / Close Scribble Strip");      // sh
+    hlp_fkey_str[2] = WDL_String("");      // f
+    hlp_fkey_str[3] = WDL_String("");      // m
 
-    sprintf(buffer, "%d", dsp_height);
-    SetExtState("US2400", "dsp_height", buffer, true);
+    hlp_shift_str[0] = WDL_String("");      // _
+    hlp_shift_str[1] = WDL_String("");      // sh
+    hlp_shift_str[2] = WDL_String("Open / Close On-Screen Help");      // f
+    hlp_shift_str[3] = WDL_String("");      // m
 
-    sprintf(buffer, "%d", dsp_open);
-    SetExtState("US2400", "dsp_open", buffer, true);
+    hlp_keys_str[0][0][0] = WDL_String("Enter Aux Mode: Aux---1"); // aux1 | pan | _
+    hlp_keys_str[0][0][1] = WDL_String(""); // aux1 | pan | sh
+    hlp_keys_str[0][0][2] = WDL_String(""); // aux1 | pan | f
+    hlp_keys_str[0][0][3] = WDL_String(""); // aux1 | pan | m
+    hlp_keys_str[0][1][0] = WDL_String("FX Parameters: Shift Bank (< 24)"); // aux1 | chan | _
+    hlp_keys_str[0][1][1] = WDL_String(""); // aux1 | chan | sh
+    hlp_keys_str[0][1][2] = WDL_String(""); // aux1 | chan | f
+    hlp_keys_str[0][1][3] = WDL_String(""); // aux1 | chan | m
+    hlp_keys_str[0][2][0] = WDL_String("Enter Aux Mode: Aux---1"); // aux1 | aux | _
+    hlp_keys_str[0][2][1] = WDL_String(""); // aux1 | aux | sh
+    hlp_keys_str[0][2][2] = WDL_String(""); // aux1 | aux | f
+    hlp_keys_str[0][2][3] = WDL_String(""); // aux1 | aux | m
+
+    hlp_keys_str[1][0][0] = WDL_String("Enter Aux Mode: Aux---2"); // aux2 | pan | _
+    hlp_keys_str[1][0][1] = WDL_String(""); // aux2 | pan | sh
+    hlp_keys_str[1][0][2] = WDL_String(""); // aux2 | pan | f
+    hlp_keys_str[1][0][3] = WDL_String(""); // aux2 | pan | m
+    hlp_keys_str[1][1][0] = WDL_String("FX Parameters: Shift Bank (24 >)"); // aux2 | chan | _
+    hlp_keys_str[1][1][1] = WDL_String(""); // aux2 | chan | sh
+    hlp_keys_str[1][1][2] = WDL_String(""); // aux2 | chan | f
+    hlp_keys_str[1][1][3] = WDL_String(""); // aux2 | chan | m
+    hlp_keys_str[1][2][0] = WDL_String("Enter Aux Mode: Aux---2"); // aux2 | aux | _
+    hlp_keys_str[1][2][1] = WDL_String(""); // aux2 | aux | sh
+    hlp_keys_str[1][2][2] = WDL_String(""); // aux2 | aux | f
+    hlp_keys_str[1][2][3] = WDL_String(""); // aux2 | aux | m
+
+    hlp_keys_str[2][0][0] = WDL_String("Enter Aux Mode: Aux---3"); // aux3 | pan | _
+    hlp_keys_str[2][0][1] = WDL_String(""); // aux3 | pan | sh
+    hlp_keys_str[2][0][2] = WDL_String(""); // aux3 | pan | f
+    hlp_keys_str[2][0][3] = WDL_String(""); // aux3 | pan | m
+    hlp_keys_str[2][1][0] = WDL_String("Current FX: Toggle Bypass "); // aux3 | chan | _
+    hlp_keys_str[2][1][1] = WDL_String(""); // aux3 | chan | sh
+    hlp_keys_str[2][1][2] = WDL_String(""); // aux3 | chan | f
+    hlp_keys_str[2][1][3] = WDL_String(""); // aux3 | chan | m
+    hlp_keys_str[2][2][0] = WDL_String("Enter Aux Mode: Aux---3"); // aux3 | aux | _
+    hlp_keys_str[2][2][1] = WDL_String(""); // aux3 | aux | sh
+    hlp_keys_str[2][2][2] = WDL_String(""); // aux3 | aux | f
+    hlp_keys_str[2][2][3] = WDL_String(""); // aux3 | aux | m
+
+    hlp_keys_str[3][0][0] = WDL_String("Enter Aux Mode: Aux---4"); // aux4 | pan | _
+    hlp_keys_str[3][0][1] = WDL_String(""); // aux4 | pan | sh
+    hlp_keys_str[3][0][2] = WDL_String(""); // aux4 | pan | f
+    hlp_keys_str[3][0][3] = WDL_String(""); // aux4 | pan | m
+    hlp_keys_str[3][1][0] = WDL_String("Insert FX"); // aux4 | chan | _
+    hlp_keys_str[3][1][1] = WDL_String(""); // aux4 | chan | sh
+    hlp_keys_str[3][1][2] = WDL_String(""); // aux4 | chan | f
+    hlp_keys_str[3][1][3] = WDL_String(""); // aux4 | chan | m
+    hlp_keys_str[3][2][0] = WDL_String("Enter Aux Mode: Aux---4"); // aux4 | aux | _
+    hlp_keys_str[3][2][1] = WDL_String(""); // aux4 | aux | sh
+    hlp_keys_str[3][2][2] = WDL_String(""); // aux4 | aux | f
+    hlp_keys_str[3][2][3] = WDL_String(""); // aux4 | aux | m
+
+    hlp_keys_str[4][0][0] = WDL_String("Enter Aux Mode: Aux---5"); // aux5 | pan | _
+    hlp_keys_str[4][0][1] = WDL_String(""); // aux5 | pan | sh
+    hlp_keys_str[4][0][2] = WDL_String(""); // aux5 | pan | f
+    hlp_keys_str[4][0][3] = WDL_String(""); // aux5 | pan | m
+    hlp_keys_str[4][1][0] = WDL_String("Delete FX"); // aux5 | chan | _
+    hlp_keys_str[4][1][1] = WDL_String(""); // aux5 | chan | sh
+    hlp_keys_str[4][1][2] = WDL_String(""); // aux5 | chan | f
+    hlp_keys_str[4][1][3] = WDL_String(""); // aux5 | chan | m
+    hlp_keys_str[4][2][0] = WDL_String("Enter Aux Mode: Aux---5"); // aux5 | aux | _
+    hlp_keys_str[4][2][1] = WDL_String(""); // aux5 | aux | sh
+    hlp_keys_str[4][2][2] = WDL_String(""); // aux5 | aux | f
+    hlp_keys_str[4][2][3] = WDL_String(""); // aux5 | aux | m
+
+    hlp_keys_str[5][0][0] = WDL_String("Enter Aux Mode: Aux---6"); // aux6 | pan | _
+    hlp_keys_str[5][0][1] = WDL_String(""); // aux6 | pan | sh
+    hlp_keys_str[5][0][2] = WDL_String(""); // aux6 | pan | f
+    hlp_keys_str[5][0][3] = WDL_String(""); // aux6 | pan | m
+    hlp_keys_str[5][1][0] = WDL_String("Toggle Track / FX Automation"); // aux6 | chan | _
+    hlp_keys_str[5][1][1] = WDL_String(""); // aux6 | chan | sh
+    hlp_keys_str[5][1][2] = WDL_String(""); // aux6 | chan | f
+    hlp_keys_str[5][1][3] = WDL_String(""); // aux6 | chan | m
+    hlp_keys_str[5][2][0] = WDL_String("Enter Aux Mode: Aux---6"); // aux6 | aux | _
+    hlp_keys_str[5][2][1] = WDL_String(""); // aux6 | aux | sh
+    hlp_keys_str[5][2][2] = WDL_String(""); // aux6 | aux | f
+    hlp_keys_str[5][2][3] = WDL_String(""); // aux6 | aux | m
+
+    hlp_keys_str[6][0][0] = WDL_String(""); // null | pan | _
+    hlp_keys_str[6][0][1] = WDL_String(""); // null | pan | sh
+    hlp_keys_str[6][0][2] = WDL_String(""); // null | pan | f
+    hlp_keys_str[6][0][3] = WDL_String(""); // null | pan | m
+    hlp_keys_str[6][1][0] = WDL_String(""); // null | chan | _
+    hlp_keys_str[6][1][1] = WDL_String(""); // null | chan | sh
+    hlp_keys_str[6][1][2] = WDL_String(""); // null | chan | f
+    hlp_keys_str[6][1][3] = WDL_String(""); // null | chan | m
+    hlp_keys_str[6][2][0] = WDL_String(""); // null | aux | _
+    hlp_keys_str[6][2][1] = WDL_String(""); // null | aux | sh
+    hlp_keys_str[6][2][2] = WDL_String(""); // null | aux | f
+    hlp_keys_str[6][2][3] = WDL_String(""); // null | aux | m
+
+    hlp_keys_str[7][0][0] = WDL_String("Rewind"); // rew | pan | _
+    hlp_keys_str[7][0][1] = WDL_String("Automation Mode: Off / Trim"); // rew | pan | sh
+    hlp_keys_str[7][0][2] = WDL_String(""); // rew | pan | f
+    hlp_keys_str[7][0][3] = WDL_String(""); // rew | pan | m
+    hlp_keys_str[7][1][0] = WDL_String("Rewind"); // rew | chan | _
+    hlp_keys_str[7][1][1] = WDL_String("Automation Mode: Off / Trim"); // rew | chan | sh
+    hlp_keys_str[7][1][2] = WDL_String(""); // rew | chan | f
+    hlp_keys_str[7][1][3] = WDL_String(""); // rew | chan | m
+    hlp_keys_str[7][2][0] = WDL_String("Rewind"); // rew | aux | _
+    hlp_keys_str[7][2][1] = WDL_String("Automation Mode: Off / Trim"); // rew | aux | sh
+    hlp_keys_str[7][2][2] = WDL_String(""); // rew | aux | f
+    hlp_keys_str[7][2][3] = WDL_String(""); // rew | aux | m
+
+    hlp_keys_str[8][0][0] = WDL_String("Fast Forward"); // fwd | pan | _
+    hlp_keys_str[8][0][1] = WDL_String("Automation Mode: Read"); // fwd | pan | sh
+    hlp_keys_str[8][0][2] = WDL_String(""); // fwd | pan | f
+    hlp_keys_str[8][0][3] = WDL_String(""); // fwd | pan | m
+    hlp_keys_str[8][1][0] = WDL_String("Fast Forward"); // fwd | chan | _
+    hlp_keys_str[8][1][1] = WDL_String("Automation Mode: Read"); // fwd | chan | sh
+    hlp_keys_str[8][1][2] = WDL_String(""); // fwd | chan | f
+    hlp_keys_str[8][1][3] = WDL_String(""); // fwd | chan | m
+    hlp_keys_str[8][2][0] = WDL_String("Fast Forward"); // fwd | aux | _
+    hlp_keys_str[8][2][1] = WDL_String("Automation Mode: Read"); // fwd | aux | sh
+    hlp_keys_str[8][2][2] = WDL_String(""); // fwd | aux | f
+    hlp_keys_str[8][2][3] = WDL_String(""); // fwd | aux | m
+
+    hlp_keys_str[9][0][0] = WDL_String("Stop"); // stop | pan | _
+    hlp_keys_str[9][0][1] = WDL_String("Automation Mode: Latch"); // stop | pan | sh
+    hlp_keys_str[9][0][2] = WDL_String(""); // stop | pan | f
+    hlp_keys_str[9][0][3] = WDL_String(""); // stop | pan | m
+    hlp_keys_str[9][1][0] = WDL_String("Stop"); // stop | chan | _
+    hlp_keys_str[9][1][1] = WDL_String("Automation Mode: Latch"); // stop | chan | sh
+    hlp_keys_str[9][1][2] = WDL_String(""); // stop | chan | f
+    hlp_keys_str[9][1][3] = WDL_String(""); // stop | chan | m
+    hlp_keys_str[9][2][0] = WDL_String("Stop"); // stop | aux | _
+    hlp_keys_str[9][2][1] = WDL_String("Automation Mode: Latch"); // stop | aux | sh
+    hlp_keys_str[9][2][2] = WDL_String(""); // stop | aux | f
+    hlp_keys_str[9][2][3] = WDL_String(""); // stop | aux | m
+
+    hlp_keys_str[10][0][0] = WDL_String("Play"); // play | pan | _
+    hlp_keys_str[10][0][1] = WDL_String("Automation Mode: Write"); // play | pan | sh
+    hlp_keys_str[10][0][2] = WDL_String(""); // play | pan | f
+    hlp_keys_str[10][0][3] = WDL_String(""); // play | pan | m
+    hlp_keys_str[10][1][0] = WDL_String("Play"); // play | chan | _
+    hlp_keys_str[10][1][1] = WDL_String("Automation Mode: Write"); // play | chan | sh
+    hlp_keys_str[10][1][2] = WDL_String(""); // play | chan | f
+    hlp_keys_str[10][1][3] = WDL_String(""); // play | chan | m
+    hlp_keys_str[10][2][0] = WDL_String("Play"); // play | aux | _
+    hlp_keys_str[10][2][1] = WDL_String("Automation Mode: Write"); // play | aux | sh
+    hlp_keys_str[10][2][2] = WDL_String(""); // play | aux | f
+    hlp_keys_str[10][2][3] = WDL_String(""); // play | aux | m
+
+    hlp_keys_str[11][0][0] = WDL_String("Record (Punch in when playing)"); // rec | pan | _
+    hlp_keys_str[11][0][1] = WDL_String("Automation: Write Current Value to Time Selection"); // rec | pan | sh
+    hlp_keys_str[11][0][2] = WDL_String(""); // rec | pan | f
+    hlp_keys_str[11][0][3] = WDL_String(""); // rec | pan | m
+    hlp_keys_str[11][1][0] = WDL_String("Record (Punch in when playing)"); // rec | chan | _
+    hlp_keys_str[11][1][1] = WDL_String("Automation: Write Current Value to Time Selection"); // rec | chan | sh
+    hlp_keys_str[11][1][2] = WDL_String(""); // rec | chan | f
+    hlp_keys_str[11][1][3] = WDL_String(""); // rec | chan | m
+    hlp_keys_str[11][2][0] = WDL_String("Record (Punch in when playing)"); // rec | aux | _
+    hlp_keys_str[11][2][1] = WDL_String("Automation: Write Current Value to Time Selection"); // rec | aux | sh
+    hlp_keys_str[11][2][2] = WDL_String(""); // rec | aux | f
+    hlp_keys_str[10][2][3] = WDL_String(""); // rec | aux | m
+
+    hlp_bank_str[0][0][0] = WDL_String("Tracks: Shift Bank (< 8)");  // bank - | pan | _
+    hlp_bank_str[0][0][1] = WDL_String("Tracks: Shift Bank (< 24)");  // bank - | pan | sh
+    hlp_bank_str[0][0][2] = WDL_String("Time Selection: Move Left Locator (< 1 Bar)");  // bank - | pan | f
+    hlp_bank_str[0][0][3] = WDL_String("Tracks: Shift Bank (< 8)");  // bank - | pan | m
+    hlp_bank_str[0][1][0] = WDL_String("Select Previous FX in Chain");  // bank - | chan | _
+    hlp_bank_str[0][1][1] = WDL_String("Tracks: Shift Bank (< 24)");  // bank - | chan | sh
+    hlp_bank_str[0][1][2] = WDL_String("Move FX Up in Chain");  // bank - | chan | f
+    hlp_bank_str[0][1][3] = WDL_String("Select Previous FX in Chain");  // bank - | chan | m
+    hlp_bank_str[0][2][0] = WDL_String("Tracks: Shift Bank (< 8)");  // bank - | aux | _
+    hlp_bank_str[0][2][1] = WDL_String("Tracks: Shift Bank (< 24)");  // bank - | aux | sh
+    hlp_bank_str[0][2][2] = WDL_String("Time Selection: Move Left Locator (< 1 Bar)");  // bank - | aux | f
+    hlp_bank_str[0][2][3] = WDL_String("Tracks: Shift Bank (< 8)");  // bank - | aux | m
+
+    hlp_bank_str[1][0][0] = WDL_String("Tracks: Shift Bank (8 >)");  // bank + | pan | _
+    hlp_bank_str[1][0][1] = WDL_String("Tracks: Shift Bank (24 >)");  // bank + | pan | sh
+    hlp_bank_str[1][0][2] = WDL_String("Time Selection: Move Left Locator (1 Bar >)");  // bank + | pan | f
+    hlp_bank_str[1][0][3] = WDL_String("Tracks: Shift Bank (8 >)");  // bank + | pan | m
+    hlp_bank_str[1][1][0] = WDL_String("Select Next FX in Chain");  // bank + | chan | _
+    hlp_bank_str[1][1][1] = WDL_String("Tracks: Shift Bank (24 >)");  // bank + | chan | sh
+    hlp_bank_str[1][1][2] = WDL_String("Move FX Down in Chain");  // bank + | chan | f
+    hlp_bank_str[1][1][3] = WDL_String("Select Previous FX in Chain");  // bank + | chan | m
+    hlp_bank_str[1][2][0] = WDL_String("Tracks: Shift Bank (8 >)");  // bank + | aux | _
+    hlp_bank_str[1][2][1] = WDL_String("Tracks: Shift Bank (24 >)");  // bank + | aux | sh
+    hlp_bank_str[1][2][2] = WDL_String("Time Selection: Move Left Locator (1 Bar >)");  // bank + | aux | f
+    hlp_bank_str[1][2][3] = WDL_String("Tracks: Shift Bank (8 >)");  // bank + | aux | m
+
+    hlp_inout_str[0][0] = WDL_String("Time Selection: Select Previous Region"); // in | _
+    hlp_inout_str[0][1] = WDL_String("Time Selection: Select All / Last Selected"); // in | sh
+    hlp_inout_str[0][2] = WDL_String("Time Selection: Move Right Locator (1 Bar >)"); // in | f
+    hlp_inout_str[0][3] = WDL_String("Time Selection: Select Previous Region"); // in | m
+
+    hlp_inout_str[1][0] = WDL_String("Time Selection: Select Next Region"); // out | _
+    hlp_inout_str[1][1] = WDL_String("Loop Time Selection On / Off"); // out | pan| sh
+    hlp_inout_str[1][2] = WDL_String("Time Selection: Move Right Locator (< 1 Bar)"); // out | f
+    hlp_inout_str[1][3] = WDL_String("Time Selection: Select Next Region"); // out | m
   }
+
 
   ////// CONVERSION & HELPERS //////
 
@@ -1415,6 +2067,25 @@ class CSurf_US2400 : public IReaperControlSurface
   } // Cnv_VolToEncoder
 
 
+  unsigned char Cnv_PeakToEncoder(double value) 
+  {
+    double new_val = VAL2DB(value);
+
+    return Cnv_DBToEncoder(new_val);
+  } // Cnv_PeakToEncoder
+
+
+  unsigned char Cnv_DBToEncoder(double value)
+  {
+    if (value > MINUSINF) value = ((MINUSINF - value) / MINUSINF * 15.0) + 0.5;
+    else value = 0.0;
+
+    if (value > 15.0) value = 15.0;
+
+    return char(value);
+  } //Cnv_DBToEncoder
+
+
   // PAN / WIDTH
 
   double Cnv_FaderToPanWidth(unsigned int value) 
@@ -1525,7 +2196,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
   // HELPERS
 
-  void Hlp_SaveSelection()
+  void Utl_SaveSelection()
   {
     if (saved_sel == 0)
     {
@@ -1548,10 +2219,10 @@ class CSurf_US2400 : public IReaperControlSurface
         SetTrackSelected(tk, false);
       }
     }
-  } // Hlp_SaveSelection
+  } // Utl_SaveSelection
 
 
-  void Hlp_RestoreSelection()
+  void Utl_RestoreSelection()
   {
     if (saved_sel != 0)
     {
@@ -1571,10 +2242,10 @@ class CSurf_US2400 : public IReaperControlSurface
       delete saved_sel;
       saved_sel = 0;
     }
-  } // Hlp_RestoreSelection
+  } // Utl_RestoreSelection
 
 
-  void Hlp_GetCustomCmdIds()
+  void Utl_GetCustomCmdIds()
   {
     const char* name;
 
@@ -1582,30 +2253,33 @@ class CSurf_US2400 : public IReaperControlSurface
     for (int cmd = 50000; cmd <= 65535; cmd++)
     {
       name = kbd_getTextFromCmd(cmd, NULL);
-
-      if (strstr(name, "US-2400"))
+      const char* end = strstr(name, "US-2400 -");
+      if (end != NULL)
       {
+        int len = end - name - 9;
+
         int qkey = -1;
         int mode = -1;
         int key = -1;
 
         // find qualifier key
-        if (strstr(name, "Shift")) qkey = 1;
-        else if (strstr(name, "FKey")) qkey = 2;
-        else qkey = 0;
+        if (strstr(name, "- NoKey -")) qkey = 0;
+        else if (strstr(name, "- Shift -")) qkey = 1;
+        else if (strstr(name, "- FKey -")) qkey = 2;
+        else if (strstr(name, "- MKey -")) qkey = 3;
 
         // find mode
-        if (strstr(name, "Pan-Mode")) mode = 0;
-        else if (strstr(name, "Chan-Mode")) mode = 1;
-        else if (strstr(name, "Aux-Mode")) mode = 2;
+        if (strstr(name, "- Pan -")) mode = 0;
+        else if (strstr(name, "- Chan -")) mode = 1;
+        else if (strstr(name, "- Aux -")) mode = 2;
 
         // find key
-        if (strstr(name, "Null")) key = 6;
-        else if (strstr(name, "Rew")) key = 7;
-        else if (strstr(name, "FFwd")) key = 8;
-        else if (strstr(name, "Stop")) key = 9;
-        else if (strstr(name, "Play")) key = 10;
-        else if (strstr(name, "Rec")) key = 11;
+        if (strstr(name, "- Null")) key = 6;
+        else if (strstr(name, "- Rew")) key = 7;
+        else if (strstr(name, "- FFwd")) key = 8;
+        else if (strstr(name, "- Stop")) key = 9;
+        else if (strstr(name, "- Play")) key = 10;
+        else if (strstr(name, "- Rec")) key = 11;
         else
         {
           char index_string[3];
@@ -1617,16 +2291,32 @@ class CSurf_US2400 : public IReaperControlSurface
         }
 
         // save cmd id
-        if ((qkey != -1) && (mode != -1) && (key != -1))
+        if (key != -1)
         {
-          cmd_ids[qkey][mode][key] = cmd;
+          // if no mode or qkey specified enter found action for all undefined modes / qkeys
+          for (int q = 0; q <= 3; q++)
+          {
+            for (int m = 0; m <= 2; m++)
+            {
+              if ( 
+                ( (q == qkey) || ((qkey == -1) && (cmd_ids[q][m][key] == -1)) ) && 
+                ( (m == mode) || ((mode == -1) && (cmd_ids[q][m][key] == -1)) ) 
+              )
+              {
+                cmd_ids[q][m][key] = cmd;
+                hlp_keys_str[key][m][q] = WDL_String(name);
+                hlp_keys_str[key][m][q].DeleteSub(0, 8);
+                hlp_keys_str[key][m][q].SetLen(len);
+              }
+            }
+          }
         }
       }
     }
-  } // Hlp_GetCustomCmdIds
+  } // Utl_GetCustomCmdIds
 
 
-  void Hlp_CheckFXInsert()
+  void Utl_CheckFXInsert()
   {
     // this gets set to true by InsertFX so we know the dialog has been open
     if (insert_fx_hook)
@@ -1637,16 +2327,17 @@ class CSurf_US2400 : public IReaperControlSurface
       // update display and encoders / faders
       for (int ch = 0; ch < 24; ch++)
       {
-        Dsp_Update(ch);
+        Stp_Update(ch);
         if (!m_flip) MySetSurface_UpdateEncoder(ch);
         else MySetSurface_UpdateFader(ch);
       }
     }
 
     insert_fx_hook = false;
-  } // Hlp_CheckFXInsert
+  } // Utl_CheckFXInsert
 
-  WDL_String Hlp_Alphanumeric(WDL_String in_str)
+
+  WDL_String Utl_Alphanumeric(WDL_String in_str)
   {
     char* str_buf = in_str.Get();
     bool replace = false;
@@ -1664,6 +2355,37 @@ class CSurf_US2400 : public IReaperControlSurface
 
     WDL_String out_str = WDL_String(str_buf);
     return out_str;
+  } // Utl_Alphanumeric
+
+
+  MediaTrack* Utl_FindAux(int aux_id)
+  {
+    MediaTrack* aux_tk;
+    bool aux_found = false;
+    
+    for (int tk_id = 0; tk_id < CountTracks(0); tk_id++)
+    {
+      MediaTrack* tk = GetTrack(0, tk_id);
+      const char* name = GetTrackState(tk, 0);
+      
+      // lowercase aux
+      int c = 0;
+      int chr_found = 0;
+      while ((name[c] != '\0') && (c < strlen(name)))
+      {
+        if (chr_found == 0 && ((name[c] == 'A') || (name[c] == 'a'))) chr_found = 1;
+        else if (chr_found == 1 && ((name[c] == 'U') || (name[c] == 'u'))) chr_found = 2;
+        else if (chr_found == 2 && ((name[c] == 'X') || (name[c] == 'x'))) chr_found = 3;
+        else if ((chr_found >= 3) && (chr_found <= 5) && (name[c] == '-')) chr_found++;
+        else if ((chr_found == 6) && (name[c] == (aux_id + 48))) chr_found = 7;
+
+        if (chr_found == 7) return tk;
+
+        c++;
+      }
+    }
+    
+    return NULL;
   }
 
 
@@ -1684,7 +2406,7 @@ public:
 
 
     // reset cmd_ids
-    for (char qkey = 0; qkey < 3; qkey++)
+    for (char qkey = 0; qkey < 4; qkey++)
       for (char mode = 0; mode < 3; mode++)
         for (char key = 0; key < 12; key++)
           cmd_ids[qkey][mode][key] = -1;
@@ -1736,6 +2458,7 @@ public:
     // qualifier keys
     q_fkey = false;
     q_shift = false;
+    q_mkey = false;
 
     // for channel strip
     chan_ch = 0;
@@ -1751,26 +2474,39 @@ public:
     s_loop_all = false;
 
     // Display
-    dsp_hwnd = NULL;
-    dsp_class.cbSize = sizeof(WNDCLASSEX);
-    dsp_class.style = 0;
-    dsp_class.lpfnWndProc = (WNDPROC)Dsp_WindowProc;
-    dsp_class.cbClsExtra = 0;
-    dsp_class.cbWndExtra = 0;
-    dsp_class.hInstance = g_hInst;
-    dsp_class.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-    dsp_class.hCursor = LoadCursor(NULL, IDC_ARROW);
-    dsp_class.hbrBackground = CreateSolidBrush(RGB(60, 60, 60));
-    dsp_class.lpszMenuName = NULL;
-    dsp_class.lpszClassName = "dsp";
-    dsp_class.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+    stp_hwnd = NULL;
+    stp_class.cbSize = sizeof(WNDCLASSEX);
+    stp_class.style = 0;
+    stp_class.lpfnWndProc = (WNDPROC)Stp_WindowProc;
+    stp_class.cbClsExtra = 0;
+    stp_class.cbWndExtra = 0;
+    stp_class.hInstance = g_hInst;
+    stp_class.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    stp_class.hCursor = LoadCursor(NULL, IDC_ARROW);
+    stp_class.hbrBackground = CreateSolidBrush(RGB(60, 60, 60));
+    stp_class.lpszMenuName = NULL;
+    stp_class.lpszClassName = "stp";
+    stp_class.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
     
-    if (!RegisterClassEx(&dsp_class)) DBGS("Register failed\n")
+    RegisterClassEx(&stp_class);
 
-    // inifile
-    ini_path = WDL_String(GetResourcePath());
-    ini_path.Append("\\");
-    ini_path.Append(INIFILE);
+    // On-Screen Help
+
+    hlp_hwnd = NULL;
+    hlp_class.cbSize = sizeof(WNDCLASSEX);
+    hlp_class.style = 0;
+    hlp_class.lpfnWndProc = (WNDPROC)Hlp_WindowProc;
+    hlp_class.cbClsExtra = 0;
+    hlp_class.cbWndExtra = 0;
+    hlp_class.hInstance = g_hInst;
+    hlp_class.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    hlp_class.hCursor = LoadCursor(NULL, IDC_ARROW);
+    hlp_class.hbrBackground = CreateSolidBrush(RGB(60, 60, 60));
+    hlp_class.lpszMenuName = NULL;
+    hlp_class.lpszClassName = "hlp";
+    hlp_class.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+    
+    RegisterClassEx(&hlp_class);
 
     // create midi hardware access
     m_midiin = m_midi_in_dev >= 0 ? CreateMIDIInput(m_midi_in_dev) : NULL;
@@ -1805,9 +2541,11 @@ public:
 
   bool MySetSurface_Init() 
   {
-    Dsp_RetrieveCoords();
+    Stp_RetrieveCoords();
 
-    Hlp_GetCustomCmdIds();
+    Hlp_FillStrs(); // insert hardcoded strings into hlp_xxx_str
+
+    Utl_GetCustomCmdIds(); // inserts custom cmd strs into hlp_keys_str
     CSurf_ResetAllCachedVolPanStates(); 
     TrackList_UpdateAllExternalSurfaces(); 
 
@@ -1836,7 +2574,7 @@ public:
 
   bool MySetSurface_Exit()
   {
-    Dsp_SaveCoords();
+    Stp_SaveCoords();
 
     CSurf_ResetAllCachedVolPanStates();
 
@@ -1859,7 +2597,7 @@ public:
     // reset bank leds
     MIDIOut(0xb0, 0x5d, 0);
 
-    Dsp_CloseWindow();
+    Stp_CloseWindow();
 
     return true;
   } // MySetSurface_Exit
@@ -2044,7 +2782,7 @@ public:
   } // MySetSurface_UpdateFader
 
 
-  void ExecuteFaderUpdate(int ch_id)
+  void MySetSurface_ExecuteFaderUpdate(int ch_id)
   {
     if ((s_touch_fdr & (1 << ch_id)) == 0)
     {
@@ -2055,7 +2793,7 @@ public:
       // remove update flag
       cache_upd_faders = cache_upd_faders & (~(1 << ch_id));  
     }
-  } // ExecuteFaderUpdate
+  } // MySetSurface_ExecuteFaderUpdate
 
 
   void MySetSurface_UpdateEncoder(int ch_id)
@@ -2100,7 +2838,7 @@ public:
       if (!isactive)
       { // is not active encoder
 
-        if (m_pan) value = 15; // reset, show something to indicate inactive
+        if (m_pan) value = 15; // reset, show something to inhlpate inactive
         else value = 0; // reset
       
       } else 
@@ -2114,14 +2852,14 @@ public:
             {
               GetTrackSendUIVolPan(rpr_tk, send_id, NULL, &d_value);
               value = Cnv_PanToEncoder(d_value);
-              value += 0x10; // pan mode
+              if (METERMODE) value += 0x10; // pan mode
             }
           } else
           { // flip -> volume
 
             GetTrackUIVolPan(rpr_tk, &d_value, NULL);
             value = Cnv_VolToEncoder(d_value);
-            value += 0x20; // bar mode
+            if (METERMODE) value += 0x20; // bar mode
           }
         } else
         {
@@ -2132,7 +2870,7 @@ public:
             d_value = TrackFX_GetParam(chan_rpr_tk, chan_fx, chan_par_offs + ch_id, &min, &max);
 
             value = Cnv_FXParamToEncoder(min, max, d_value);
-            value += 0x20; // bar mode
+            if (METERMODE) value += 0x20; // bar mode
          
           } else if (m_aux > 0)
           { // aux -> send level
@@ -2141,7 +2879,7 @@ public:
             {
               GetTrackSendUIVolPan(rpr_tk, send_id, &d_value, NULL);
               value = Cnv_VolToEncoder(d_value);
-              value += 0x20; // bar mode;
+              if (METERMODE) value += 0x20; // bar mode;
             }
           
           } else if (m_pan)
@@ -2150,15 +2888,21 @@ public:
             { // pan mode + fkey -> width
               
               d_value = GetMediaTrackInfo_Value(rpr_tk, "D_WIDTH");
-              value = Cnv_WidthToEncoder(d_value);
-              value += 0x30; // width mode
+              if (!METERMODE) 
+              {
+                value = Cnv_PanToEncoder(d_value);
+              
+              } else {
+                value = Cnv_WidthToEncoder(d_value);
+                value += 0x30; // width mode
+              }
 
             } else
             { // pan mode -> pan
 
               GetTrackUIVolPan(rpr_tk, NULL, &d_value);
               value = Cnv_PanToEncoder(d_value);
-              value += 0x10; // pan mode
+              if (METERMODE) value += 0x10; // pan mode
             }
           }
         } // if (m_flip), else
@@ -2189,14 +2933,70 @@ public:
   } // MySetSurface_UpdateEncoder
 
 
-  void ExecuteEncoderUpdate(int ch_id)
+  void MySetSurface_ExecuteEncoderUpdate(int ch_id)
   {
-    // send midi
+    unsigned char out = cache_enc[ch_id];
+    
+    // send midi -> pan
     MIDIOut(0xb0, ch_id + 0x40, cache_enc[ch_id]);
+
+    // send midi -> meter mode
+    if (!METERMODE) 
+    {
+      if (out & 0x40) MIDIOut(0xb0, ch_id + 0x60, 0x60);
+      MIDIOut(0xb0, ch_id + 0x60, cache_enc[ch_id] + 0x50);
+    }
     
     // remove update flag
     cache_upd_enc = cache_upd_enc & (~(1 << ch_id));
-  } // ExecuteEncoderUpdate
+  } // MySetSurface_ExecuteEncoderUpdate
+
+
+  void MySetSurface_OutputMeters(bool reset)
+  {
+    MediaTrack* tk;
+    double tk_peak_l, tk_peak_r, tk_hold;
+    int peak_out, hold_out;
+
+    // iterate through channels
+    for(int ch = 0; ch < 24; ch++)
+    {
+      // get data
+      tk = Cnv_ChannelIDToMediaTrack(ch);
+      
+      tk_peak_l = Track_GetPeakInfo(tk, 0);
+      tk_peak_r = Track_GetPeakInfo(tk, 1);
+
+      peak_out = Cnv_PeakToEncoder((tk_peak_l + tk_peak_r) / 2);
+      
+      tk_hold = (Track_GetPeakHoldDB(tk, 0, reset) + Track_GetPeakHoldDB(tk, 1, reset)) * 50;
+      hold_out = Cnv_DBToEncoder(tk_hold) + 0x10;
+
+      // over
+      if ((tk_peak_l > 1.0) || (tk_peak_r > 1.0)) peak_out += 0x60;
+      else peak_out += 0x40;
+      
+      if (hold_out != cache_meters[ch])
+      {
+        // new value to cache (gets executed on next run cycle)
+        cache_meters[ch] = hold_out;
+
+        // set upd flag 
+        cache_upd_meters = cache_upd_meters | (1 << ch);
+      }  
+      // midi out
+      MIDIOut(0xb0, ch + 0x60, peak_out);
+    }
+  } // MySetSurface_OutputMeters
+
+
+  void MySetSurface_ExecuteMeterUpdate(char ch_id)
+  {
+    MIDIOut(0xb0, ch_id + 0x60, cache_meters[ch_id]);
+
+    // remove update flag
+    cache_upd_meters = cache_upd_meters & (~(1 << ch_id));
+  }
 
 
   void MySetSurface_UpdateTrackElement(char ch_id)
@@ -2234,7 +3034,7 @@ public:
 
   void MySetSurface_ToggleFlip()
   {
-    Hlp_CheckFXInsert();
+    Utl_CheckFXInsert();
 
     m_flip = !m_flip;
 
@@ -2242,12 +3042,16 @@ public:
     TrackList_UpdateAllExternalSurfaces();
 
     MySetSurface_UpdateButton(0x63, m_flip, true);
+
+    hlp_flip = m_flip;
+    Hlp_Update();
   } // MySetSurface_ToggleFlip
 
 
   void MySetSurface_ToggleFKey(bool btn_state)
   {
     q_fkey = btn_state;
+
     MySetSurface_UpdateButton(0x6d, btn_state, false);
     MySetSurface_UpdateAuxButtons();
 
@@ -2256,14 +3060,23 @@ public:
       for (char ch_id = 0; ch_id < 24; ch_id++) 
         if (m_flip) MySetSurface_UpdateFader(ch_id);
         else MySetSurface_UpdateEncoder(ch_id);
+
+    if (btn_state) hlp_qkey = 2;
+    else hlp_qkey = 0;
+    Hlp_Update();
   } // MySetSurface_ToggleFKey
 
 
   void MySetSurface_ToggleShift(bool btn_state)
   {
     q_shift = btn_state;
+
     MySetSurface_UpdateButton(0x74, btn_state, false);
     MySetSurface_UpdateAuxButtons();
+
+    if (btn_state) hlp_qkey = 1;
+    else hlp_qkey = 0;
+    Hlp_Update();
   } // MySetSurface_ToggleShift
 
 
@@ -2276,7 +3089,7 @@ public:
 
   void MySetSurface_Chan_SetFxParamOffset(char dir)
   {
-    Hlp_CheckFXInsert();
+    Utl_CheckFXInsert();
 
     chan_par_offs -= 24 * dir;
     if (chan_par_offs < 0) chan_par_offs = 0;
@@ -2291,7 +3104,7 @@ public:
       if (m_flip) MySetSurface_UpdateFader(ch_id);
       else MySetSurface_UpdateEncoder(ch_id);
 
-      if (dsp_hwnd != NULL) Dsp_Update(ch_id);
+      if (stp_hwnd != NULL) Stp_Update(ch_id);
     }
 
   } // MySetSurface_Chan_Set_FXParamOffset
@@ -2319,7 +3132,7 @@ public:
       MyCSurf_Chan_OpenFX(chan_fx);
 
       for (int enc = 0; enc < 24; enc++)
-        if (dsp_hwnd != NULL) Dsp_Update(enc);
+        if (stp_hwnd != NULL) Stp_Update(enc);
 
     }
 
@@ -2358,7 +3171,7 @@ public:
       MySetSurface_UpdateFader(ch_id);
       MySetSurface_UpdateTrackElement(ch_id);
 
-      if (dsp_hwnd != NULL) Dsp_Update(ch_id);
+      if (stp_hwnd != NULL) Stp_Update(ch_id);
     }
 
     MySetSurface_UpdateBankLEDs();
@@ -2392,10 +3205,13 @@ public:
 
     // update scribble strip
     for (int enc = 0; enc < 24; enc++)
-      if (dsp_hwnd != NULL) Dsp_Update(enc);
+      if (stp_hwnd != NULL) Stp_Update(enc);
 
     // bugfix: deselect master
     if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
+
+    hlp_mode = 1;
+    Hlp_Update();
   } // MySetSurface_EnterChanMode
 
 
@@ -2424,7 +3240,7 @@ public:
 
     // update scribble strip
     for (int enc = 0; enc < 24; enc++)
-      if (dsp_hwnd != NULL) Dsp_Update(enc);
+      if (stp_hwnd != NULL) Stp_Update(enc);
 
     // bugfix: deselect master
     if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
@@ -2446,6 +3262,9 @@ public:
     for (char ch_id = 0; ch_id < 23; ch_id++) 
       if (m_flip) MySetSurface_UpdateFader(ch_id);
       else MySetSurface_UpdateEncoder(ch_id);
+
+    hlp_mode = 0;
+    Hlp_Update();
   } // MySetSurface_EnterPanMode
 
 
@@ -2471,6 +3290,9 @@ public:
       if (m_flip) MySetSurface_UpdateFader(ch_id);
       MySetSurface_UpdateEncoder(ch_id); // update encoders on flip also (> send pan)!
     }
+
+    hlp_mode = 2;
+    Hlp_Update();
   } // MySetSurface_EnterAuxMode
 
 
@@ -2514,7 +3336,7 @@ public:
       MySetSurface_UpdateTrackElement(i);
       MySetSurface_UpdateEncoder(i);
 
-      if ((dsp_hwnd != NULL) && (i < 24)) Dsp_Update(i);
+      if ((stp_hwnd != NULL) && (i < 24)) Stp_Update(i);
     }
   } // SetTrackListChange
 
@@ -2528,7 +3350,7 @@ public:
       if (mute) MySetSurface_UpdateButton(4 * ch_id + 3, true, false);
       else MySetSurface_UpdateButton(4 * ch_id + 3, false, false);
 
-      Dsp_Update(ch_id);
+      Stp_Update(ch_id);
     }
   } // SetSurfaceMute
 
@@ -2541,7 +3363,7 @@ public:
     if ( (ch_id >= 0) && (ch_id <= 24) ) 
     {
       MySetSurface_UpdateButton(4 * ch_id + 1, selected, false);
-      Dsp_Update(ch_id);
+      Stp_Update(ch_id);
     }
   } // SetSurfaceSelected
 
@@ -2569,7 +3391,7 @@ public:
     if ((ch_id > 0) && (ch_id < 24))
     {
       MySetSurface_UpdateEncoder(ch_id);
-      Dsp_Update(ch_id);
+      Stp_Update(ch_id);
     }
   } // SetSurfaceRecArm
 
@@ -2607,7 +3429,6 @@ public:
     s_loop = rep;
 
     // update in/out buttons
-    MySetSurface_UpdateButton(0x72, s_loop, false); 
     MySetSurface_UpdateButton(0x73, s_loop, false); 
   } // SetRepeatState
 
@@ -2703,6 +3524,115 @@ public:
   } // MyCSurf_SwitchPhase
 
 
+  // mode 0: post, 3: pre
+  void MyCSurf_AddAuxSend(MediaTrack* rpr_tk, int aux, int mode)
+  {
+    int tk_id = GetMediaTrackInfo_Value(rpr_tk, "IP_TRACKNUMBER") - 1;
+    MediaTrack* aux_tk = Utl_FindAux(aux);
+
+    if (aux_tk != NULL)
+    {
+      char newchunk[93000];
+      strcpy(newchunk, "<TRACK\n");
+
+      int tk_amount = CountTracks(0);
+      if (tk_amount > 1000) tk_amount = 1000;
+
+      char* getchunk = GetSetObjectState(aux_tk, "");
+
+      for (int tk = 0; tk < tk_amount; tk++)
+      {
+
+        char tk_id_post_str[13];
+        sprintf(tk_id_post_str, "AUXRECV %d 0", tk);
+        char tk_id_pre_str[13];
+        sprintf(tk_id_pre_str, "AUXRECV %d 3", tk);
+        
+        // (re-)insert post sends
+        if ((strstr(getchunk, tk_id_post_str) != 0) || ((tk == tk_id) && (mode == 0)))
+        {
+          char insert_str[84];
+          sprintf(insert_str, "AUXRECV %d 0 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
+          strcat(newchunk, insert_str);
+        }
+
+        // (re-)insert pre sends
+        if ((strstr(getchunk, tk_id_pre_str) != 0) || ((tk == tk_id) && (mode == 3)))
+        {
+          char insert_str[84];
+          sprintf(insert_str, "AUXRECV %d 3 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
+          strcat(newchunk, insert_str);
+        }
+
+      }
+
+      FreeHeapPtr(getchunk);
+
+      GetSetObjectState(aux_tk, newchunk);
+      TrackList_AdjustWindows(false);      
+    }
+  } // MyCSurf_AddAuxSend
+
+
+  void MyCSurf_RemoveAuxSend(MediaTrack* rpr_tk, int aux)
+  {
+    int tk_id = GetMediaTrackInfo_Value(rpr_tk, "IP_TRACKNUMBER") - 1;
+    MediaTrack* aux_tk = Utl_FindAux(aux);
+
+    if ((aux_tk != NULL) && (GetTrackNumSends(aux_tk, -1) > 0))
+    {
+      if (GetTrackNumSends(aux_tk, -1) == 1)
+      {
+        Utl_SaveSelection();
+        SetOnlyTrackSelected(aux_tk);
+        Main_OnCommand(CMD("_S&M_SENDS5"), 0);
+        Utl_RestoreSelection();
+
+      } else
+      {
+        char newchunk[93000];
+        strcpy(newchunk, "<TRACK\n");
+
+        int tk_amount = CountTracks(0);
+        if (tk_amount > 1000) tk_amount = 1000;
+
+        char* getchunk = GetSetObjectState(aux_tk, "");
+
+        
+        for (int tk = 0; tk < tk_amount; tk++)
+        {
+
+          char tk_id_post_str[13];
+          sprintf(tk_id_post_str, "AUXRECV %d 0", tk);
+          char tk_id_pre_str[13];
+          sprintf(tk_id_pre_str, "AUXRECV %d 3", tk);
+
+          // re-insert post sends
+          if ((strstr(getchunk, tk_id_post_str) != 0) && (tk != tk_id))
+          {
+            char insert_str[84];
+            sprintf(insert_str, "AUXRECV %d 0 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
+            strcat(newchunk, insert_str);
+          }
+
+          // re-insert pre sends
+          if ((strstr(getchunk, tk_id_pre_str) != 0) && (tk != tk_id))
+          {
+            char insert_str[84];
+            sprintf(insert_str, "AUXRECV %d 3 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
+            strcat(newchunk, insert_str);
+          }          
+        }
+
+        FreeHeapPtr(getchunk);
+
+        GetSetObjectState(aux_tk, newchunk);
+        TrackList_AdjustWindows(false); 
+      }
+    }
+  } // MyCSurf_RemoveAuxSend
+
+
   void MyCSurf_SelectMaster() 
   {
     MediaTrack* rpr_master = Cnv_ChannelIDToMediaTrack(24);
@@ -2785,7 +3715,7 @@ public:
     MySetSurface_UpdateAuxButtons();
 
     for (int enc = 0; enc < 24; enc++)
-      if (dsp_hwnd != NULL) Dsp_Update(enc);
+      if (stp_hwnd != NULL) Stp_Update(enc);
 
     // bugfix: deselect master
     if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
@@ -2804,7 +3734,7 @@ public:
 
   void MyCSurf_Chan_DeleteFX()
   {
-    Hlp_CheckFXInsert();
+    Utl_CheckFXInsert();
 
     Undo_BeginBlock();
 
@@ -2812,14 +3742,14 @@ public:
     int before_del = TrackFX_GetCount(chan_rpr_tk);
 
     //isolate track for action
-    Hlp_SaveSelection();
+    Utl_SaveSelection();
     SetOnlyTrackSelected(chan_rpr_tk);
     Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
 
     TrackFX_SetOpen(chan_rpr_tk, chan_fx, true);
     Main_OnCommand(CMD("_S&M_REMOVE_FX"), 0);
     
-    Hlp_RestoreSelection();
+    Utl_RestoreSelection();
     
     if (before_del > 1)
     { 
@@ -2837,11 +3767,11 @@ public:
 
   void MyCSurf_Chan_InsertFX()
   {
-    Hlp_CheckFXInsert();
+    Utl_CheckFXInsert();
 
     insert_fx_hook = true;
     // isolate track for action
-    Hlp_SaveSelection();
+    Utl_SaveSelection();
     SetOnlyTrackSelected(chan_rpr_tk);
     Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
     
@@ -2849,7 +3779,7 @@ public:
     TrackFX_SetOpen(chan_rpr_tk, chan_fx, true);
     Main_OnCommand(CMD_FXBROWSER, 0);
 
-    Hlp_RestoreSelection();
+    Utl_RestoreSelection();
 
     // focus coming fx, so interface will be up to date after inserting
     int amount_fx = TrackFX_GetCount(chan_rpr_tk);
@@ -2869,7 +3799,7 @@ public:
     int amount_fx = TrackFX_GetCount(chan_rpr_tk);
 
     // isolate track for selection
-    Hlp_SaveSelection();
+    Utl_SaveSelection();
     SetOnlyTrackSelected(chan_rpr_tk);
     Main_OnCommand(CMD_SEL2LASTTOUCH, 0);
 
@@ -2885,7 +3815,7 @@ public:
       chan_fx++;  
     }
 
-    Hlp_RestoreSelection();
+    Utl_RestoreSelection();
 
     // bugfix: deselect master
     if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
@@ -2909,7 +3839,7 @@ public:
 
   void MyCSurf_Chan_ToggleFXBypass()
   {
-    Hlp_CheckFXInsert();
+    Utl_CheckFXInsert();
 
     bool bypass = (bool)TrackFX_GetEnabled(chan_rpr_tk, chan_fx);
     bypass = !bypass;
@@ -2920,7 +3850,7 @@ public:
 
   void MyCSurf_Chan_SetFXParam(MediaTrack* rpr_tk, int fx_id, int para_id, double value)
   {
-    Hlp_CheckFXInsert();
+    Utl_CheckFXInsert();
 
     char ch_id = Cnv_MediaTrackToChannelID(rpr_tk);
 
@@ -2933,7 +3863,7 @@ public:
 
   void MyCSurf_Chan_ToggleArmFXEnv()
   {
-    Hlp_SaveSelection();
+    Utl_SaveSelection();
     SetOnlyTrackSelected(Cnv_ChannelIDToMediaTrack(chan_ch));
 
     // arm all envelopes -> toggle fx disarms only them
@@ -2946,7 +3876,7 @@ public:
 
     chan_fx_env_arm = !chan_fx_env_arm;
 
-    Hlp_RestoreSelection();
+    Utl_RestoreSelection();
 
     MySetSurface_UpdateAuxButtons();
   }
@@ -2969,13 +3899,13 @@ public:
     // if writing fx automation only select and change mode for current track
     if (chan_fx_env_arm)
     {
-      Hlp_SaveSelection();
+      Utl_SaveSelection();
       SetOnlyTrackSelected(chan_rpr_tk);
 
     // if none selected, select and change all
     } else if (sel_tks == 0)
     {
-      Hlp_SaveSelection();
+      Utl_SaveSelection();
 
       for (int i = 0; i < all_tks; i++)
       {
@@ -2994,7 +3924,7 @@ public:
 
     // restore selection
     if ((chan_fx_env_arm) || (sel_tks == 0))
-      Hlp_RestoreSelection();
+      Utl_RestoreSelection();
 
 
     /* update CSurf here - because SetAutoMode() only works for global mode changes? */
@@ -3039,59 +3969,64 @@ public:
     // start_dir: move start of time sel by dir
     // end_dir move end of time sel by dir
 
-    // get time range
-    ReaProject* rpr_pro = EnumProjects(-1, NULL, 0);
-    double start_time, start_beats, end_time, end_beats;
-    int start_num, start_denom, end_num, end_denom;
-
-    // get time selection
-    GetSet_LoopTimeRange(false, true, &start_time, &end_time, false); // ??
-
-    if (markers)
+    // do nothing if sel all is on
+    if (!s_loop_all)
     {
-      // go through all markers
-      int x = 0;
-      bool stop = false;
-      double prev_marker = 0.0;
-      double marker;
-      while ( (x = EnumProjectMarkers(x, NULL, &marker, NULL, NULL, NULL)) && !stop )
+
+      // get time range
+      ReaProject* rpr_pro = EnumProjects(-1, NULL, 0);
+      double start_time, start_beats, end_time, end_beats;
+      int start_num, start_denom, end_num, end_denom;
+
+      // get time selection
+      GetSet_LoopTimeRange(false, true, &start_time, &end_time, false); // ??
+
+      if (markers)
       {
-        if ( ((start_dir < 0) && (marker >= start_time))
-          || ((end_dir > 0) && (marker > end_time)) )
+        // go through all markers
+        int x = 0;
+        bool stop = false;
+        double prev_marker = 0.0;
+        double marker;
+        while ( (x = EnumProjectMarkers(x, NULL, &marker, NULL, NULL, NULL)) && !stop )
         {
-          start_time = prev_marker;
-          end_time = marker;  
-          stop = true;
+          if ( ((start_dir < 0) && (marker >= start_time))
+            || ((end_dir > 0) && (marker > end_time)) )
+          {
+            start_time = prev_marker;
+            end_time = marker;  
+            stop = true;
+          }
+          prev_marker = marker;
         }
-        prev_marker = marker;
+        
+        // set time selection
+        if (stop) GetSet_LoopTimeRange(true, true, &start_time, &end_time, false);
+
+      } else
+      {
+        // start / end: get time sig and position in beats
+        TimeMap_GetTimeSigAtTime(rpr_pro, start_time, &start_num, &start_denom, NULL);
+        start_beats = TimeMap2_timeToQN(rpr_pro, start_time);
+
+        TimeMap_GetTimeSigAtTime(rpr_pro, end_time, &end_num, &end_denom, NULL);
+        end_beats = TimeMap2_timeToQN(rpr_pro, end_time);
+
+        // shift by bars
+        start_beats += start_dir * (4 * start_num / start_denom);
+        end_beats += end_dir * (4 * end_num / end_denom);
+
+        // reconvert to seconds
+        start_time = TimeMap2_QNToTime(rpr_pro, start_beats);
+        end_time = TimeMap2_QNToTime(rpr_pro, end_beats);
+
+        // snap to grid
+        SnapToGrid(rpr_pro, start_time);
+        SnapToGrid(rpr_pro, end_time);
+
+        // set time selection
+        GetSet_LoopTimeRange(true, true, &start_time, &end_time, false);
       }
-      
-      // set time selection
-      if (stop) GetSet_LoopTimeRange(true, true, &start_time, &end_time, false);
-
-    } else
-    {
-      // start / end: get time sig and position in beats
-      TimeMap_GetTimeSigAtTime(rpr_pro, start_time, &start_num, &start_denom, NULL);
-      start_beats = TimeMap2_timeToQN(rpr_pro, start_time);
-
-      TimeMap_GetTimeSigAtTime(rpr_pro, end_time, &end_num, &end_denom, NULL);
-      end_beats = TimeMap2_timeToQN(rpr_pro, end_time);
-
-      // shift by bars
-      start_beats += start_dir * (4 * start_num / start_denom);
-      end_beats += end_dir * (4 * end_num / end_denom);
-
-      // reconvert to seconds
-      start_time = TimeMap2_QNToTime(rpr_pro, start_beats);
-      end_time = TimeMap2_QNToTime(rpr_pro, end_beats);
-
-      // snap to grid
-      SnapToGrid(rpr_pro, start_time);
-      SnapToGrid(rpr_pro, end_time);
-
-      // set time selection
-      GetSet_LoopTimeRange(true, true, &start_time, &end_time, false);
     }
   } // MyCSurf_MoveTimeSel
 
@@ -3116,7 +4051,10 @@ public:
       GetSet_LoopTimeRange(true, true, &s_ts_start, &s_ts_end, false);
 
       s_loop_all = false;
-    }   
+    }
+
+    MySetSurface_UpdateButton(0x72, s_loop_all, false); 
+
   } // MyCSurf_Loop_ToggleAll
 
 
@@ -3159,7 +4097,7 @@ public:
 
   const char *GetDescString()
   {
-    descspace.Set("Tascam US-2400");
+    descspace.Set(DESCSTRING);
     char tmp[512];
     sprintf(tmp," (dev %d,%d)",m_midi_in_dev,m_midi_out_dev);
     descspace.Append(tmp);
@@ -3179,6 +4117,7 @@ public:
 
   void Run()
   {
+    // midi processing
     if ( (m_midiin) ) //&& (s_initdone) )
     {
       m_midiin->SwapBufs(timeGetTime());
@@ -3188,11 +4127,11 @@ public:
       while ((evts=list->EnumItems(&l))) MIDIin(evts);
     }
 
+
     // countdown enc touch delay
     for (char i = 0; i < 24; i++)
-    {
       if (s_touch_enc[i] > 0) s_touch_enc[i]--;
-    }
+
 
     // Execute fader/encoder updates
     char i = 0;
@@ -3201,14 +4140,19 @@ public:
     {
     
       if ((cache_upd_faders & (1 << cache_exec)) > 0) {
-        ExecuteFaderUpdate(cache_exec);
+        MySetSurface_ExecuteFaderUpdate(cache_exec);
         ex += 2;
       }
       if ((cache_upd_enc & (1 << cache_exec)) > 0) {
-        ExecuteEncoderUpdate(cache_exec);
+        MySetSurface_ExecuteEncoderUpdate(cache_exec);
         ex++;
       }
-      
+
+      if (METERMODE && ((cache_upd_meters & (1 << cache_exec)) > 0)) {
+        MySetSurface_ExecuteMeterUpdate(cache_exec);
+        ex++;
+      }
+           
       // incr / wrap cache_exec
       cache_exec++;
       if (cache_exec > 24) cache_exec = 0;
@@ -3217,6 +4161,69 @@ public:
       
       // repeat loop until all channels checked or exlimit reached
     } while ((i < 25) && (ex < EXLIMIT));
+
+
+    // meters
+    if (METERMODE) MySetSurface_OutputMeters(false); // false = no reset
+
+
+    // countdown m button delay, update if applicable
+    if (q_mkey)
+    {
+      if (s_mkey_on > 0) {
+        s_mkey_on--;
+        
+        // blink all participating buttons to indicate mkey mode
+        bool mblnk = false;
+        if (s_mkey_on % 2 == 0) mblnk = true;
+        
+        char mde = 0;
+        if (m_chan) mde = 1;
+        if (m_aux > 0) mde = 2;
+
+        bool mact = false;
+        
+        // aux buttons / transport
+        for (char b = 0; b < 6; b++)
+        {
+          if (cmd_ids[3][mde][b] != -1)
+          {
+            MySetSurface_UpdateButton(0x65 + b, mblnk, false);
+            mact = true;
+          }
+          if ((b < 5) && (cmd_ids[3][mde][b+7] != -1))
+          {
+            MySetSurface_UpdateButton(0x75 + b, mblnk, false);
+            mact = true;
+          }
+        }
+
+        // null button
+        if (cmd_ids[3][mde][6] != -1)
+        {
+          MySetSurface_UpdateButton(0x6e, mblnk, false);
+          mact = true;
+        }
+
+        // meter button
+        if (mact) MySetSurface_UpdateButton(0x6b, mblnk, false); // meter
+      } 
+      else
+      {
+        q_mkey = false;
+
+        hlp_qkey = 0;
+        Hlp_Update();
+
+        for (char b = 0; b < 6; b++)
+        {
+          MySetSurface_UpdateButton(0x65 + b, false, false); // aux
+          if (b < 5) MySetSurface_UpdateButton(0x75 + b, false, false); // transport
+        }
+        MySetSurface_UpdateButton(0x6e, false, false); // null
+        MySetSurface_UpdateButton(0x6b, false, false); // meter
+      }
+    }
 
 
     // blink
@@ -3252,37 +4259,38 @@ public:
     }
 
 
-    // update Display
-    if (dsp_hwnd != NULL) 
+    // update Strip Display
+    if (stp_hwnd != NULL) 
     {
 
-      dsp_fdr_touch = s_touch_fdr;
-      dsp_enc_touch = 0;      
+      stp_fdr_touch = s_touch_fdr;
+      stp_enc_touch = 0;      
       for (char ch = 0; ch < 24; ch++)
       {
-        if (m_chan && (s_touch_enc[ch] > 0)) dsp_enc_touch = dsp_enc_touch | (1 << ch);
+        if (m_chan && (s_touch_enc[ch] > 0)) stp_enc_touch = stp_enc_touch | (1 << ch);
        
-        if ( (dsp_enc_touch & (1 << ch)) != (dsp_enc_touch_prev & (1 << ch)) 
-          || (dsp_fdr_touch & (1 << ch)) != (dsp_fdr_touch_prev & (1 << ch)) )
-            Dsp_Update(ch);
+        if ( (stp_enc_touch & (1 << ch)) != (stp_enc_touch_prev & (1 << ch)) 
+          || (stp_fdr_touch & (1 << ch)) != (stp_fdr_touch_prev & (1 << ch)) )
+            Stp_Update(ch);
       }
       
-      dsp_enc_touch_prev = dsp_enc_touch;
-      dsp_fdr_touch_prev = dsp_fdr_touch;
+      stp_enc_touch_prev = stp_enc_touch;
+      stp_fdr_touch_prev = stp_fdr_touch;
 
-      if (dsp_repaint)
+      if (stp_repaint)
       {
-        InvalidateRect(dsp_hwnd, NULL, true);
-        UpdateWindow(dsp_hwnd);
-        dsp_repaint = false;
+        InvalidateRect(stp_hwnd, NULL, true);
+        UpdateWindow(stp_hwnd);
+        stp_repaint = false;
       }
     }
+
 
     // init
     if (!s_initdone) 
     {
       s_initdone = MySetSurface_Init();
-      if (dsp_open == 1) Dsp_OpenWindow();
+      if (stp_open == 1) Stp_OpenWindow();
     }
   } // Run
 
@@ -3392,11 +4400,10 @@ static HWND configFunc(const char *type_string, HWND parent, const char *initCon
   return CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_SURFACEEDIT_MCU), parent, dlgProc, (LPARAM) initConfigString);
 }
 
-
 reaper_csurf_reg_t csurf_us2400_reg = 
 {
   "US-2400",
-  "Tascam US-2400",
+  DESCSTRING,
   createFunc,
   configFunc,
 };

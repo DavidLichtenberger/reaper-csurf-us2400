@@ -61,6 +61,10 @@ extern const char* (*GetExtState)(const char* section, const char* key);
 extern void (*SetExtState)(const char* section, const char* key, const char* value, bool persist);
 extern void (*Undo_BeginBlock)();
 extern void (*Undo_EndBlock)(const char* descchange, int extraflags);
+extern double (*Track_GetPeakHoldDB)(MediaTrack* track, int channel, bool clear);
+extern char* (*GetSetObjectState)(void* obj, const char* str);
+extern void (*FreeHeapPtr)(void* ptr);
+extern void (*TrackList_AdjustWindows)(bool isMajor);
 // ADDITIONS FOR US-2400 -- END
 
 /* 

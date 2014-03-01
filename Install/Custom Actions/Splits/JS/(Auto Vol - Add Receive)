@@ -1,0 +1,138 @@
+desc: Auto Vol - Add Receive (Hit [Edit] for help)
+
+// 
+// What's this?
+//
+// Auto Vol keeps the sum volume of selected tracks at 
+// a consistent level, no matter what the individual
+// fader positions are. 
+//
+// This makes it possible to judge the sound of a blend 
+// independently from volume changes.
+//
+// The Add variant is for summing tracks whose sum 
+// volume is higher than the original volume (i.e. 
+// parallel processing - NY compression and the like).
+//
+// There is alos a Split variant which is for summing 
+// tracks whose combined volumes sum up to the original 
+// (like for example with M/S-splits).
+//
+// Both use the same Send plugin (Auto Volume - Send), 
+// only the Receives differ.
+// 
+// 
+// How?
+//
+// Insert Auto Vol Send on the selected tracks whose sum
+// you want to control (where you put the fx doesn't 
+// really matter but you can put it first in the chain so 
+// it's out of your hair).
+// 
+// Send Audio and CV from this tracks to a master track 
+// that has Auto Vol Receive as first fx in its chain.
+//
+//
+// Audio Routing
+//
+// You can send audio on the first 8 channels any way 
+// you like, but only the sum on Ch 1/2 of is modulated.
+//
+//
+// CV Routing
+//
+// Ch 9 and 10 are reserved for the CV signals that 
+// Auto Vol uses to determine fader positions.
+// 
+// Send Ch 9 pre-fader to Ch 9 on the master track and
+// Ch 10 post-fader to Ch 10 on the master track.
+//
+
+in_pin: Auto Vol Sum L
+in_pin: Auto Vol Sum R
+in_pin: Thru 3
+in_pin: Thru 4
+in_pin: Thru 5
+in_pin: Thru 6
+in_pin: Thru 7
+in_pin: Thru 8
+in_pin: CV pre
+in_pin: CV post
+out_pin: Auto Vol Sum L
+out_pin: Auto Vol Sum R
+out_pin: Thru 3
+out_pin: Thru 4
+out_pin: Thru 5
+out_pin: Thru 6
+out_pin: Thru 7
+out_pin: Thru 8
+
+
+
+@init
+
+ext_noinit = 1.0;
+
+adjustment = 0; // mute outputs
+trackCount = 0;  // reset trackcount
+
+
+
+@sample
+
+// input
+sigL = spl0;
+sigR = spl1;
+
+// sum of pre-fader signals
+activeTracks = spl8;  
+activeTracks *= 100;
+
+// sum of post-fader signals
+faderSum = spl9;    
+faderSum *= 100;
+
+// trackCount to low? (means there are channels we don't know of yet)
+activeTracks > trackCount ? (
+
+    adjustment = 0; // -> mute output
+    trackCount = activeTracks; // -> adjust trackCount
+
+// otherwise: (activeTracks < or == trackCount)
+) : (
+
+  // activeTracks == trackCount? (means all channels that we know of 
+  // are active) -> set adjustment factor here (make the sum of all 
+  // faders equal 1)
+  activeTracks == trackCount ? (
+
+    faderSum >= 0.000001 ? (
+      adjustment = 1 / faderSum;  
+    ) : (
+      adjustment = 0;
+    );
+
+  );
+
+);
+
+// if there are less channels active than counted (e.g. solo, mutes) 
+// none of the conditional code above is executed and the adjustment 
+// stays at the level that was last set when all channels were active 
+// or it stays 0 (muted) if we're still finding out how many channels 
+// are there)
+
+// output adjusted signal
+trackCount != 0 ? (
+  spl0 = sigL * adjustment;
+  spl1 = sigR * adjustment;
+);
+
+// route through ch 3 - 8
+spl2 = spl2;
+spl3 = spl3;
+spl4 = spl4;
+spl5 = spl5;
+spl6 = spl6;
+spl7 = spl7;
+
