@@ -10,6 +10,7 @@
 	* [Working with Aux Busses](#working-with-aux-busses)
 	* [Channel Strip Mode](#channel-strip-mode)
 	* [Custom Actions](#custom-actions)
+		* [Action sets in the install package](#action-sets-in-the-install-package)
 	* [M-Key or Meter Mode](#m-key-or-meter-mode)
 	* [Scribble Strip Window](#scribble-strip-window)
 	* [On-Screen-Help](#on-screen-help)
@@ -81,130 +82,94 @@ That’s about it.
 
 #### Rotary Encoders
 
-##### Default / Pan Mode
+Mode 						| No Key (Default) 	| Shift 			| F-Key
+**Default (Pan)**			| Pan 				| Pan > C 			| Stereo Width
+**Chan** 					| FX parameter 		| FX-Parameter: fine| FX parameter: toggle / coarse\*
+**Pan & Chan – *Flip***		| Volume 			| Volume > 0dB 		| Volume > -inf dB
+**Aux**						| Send Volume 		| Send Volume > 0dB | Send Volume > -inf dB
+**Aux – *Flip*** 			| Send Pan (!) 		| Send Pan > C 		| Send Pan
 
-* **Default:** Pan
-* **Flip:** Volume
-* **F-Key:** Width
-* **Shift:** Pan > C
+*\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry.*
 
-##### Aux Mode
-
-* **Default:** Send volume
-* **Flip:** Send pan!
-* **F-Key:** Send Volume > -inf dB
-* **Shift:** Send Volume > 0 dB
-
-##### Chan Mode
-
-* **Default:** FX parameter
-* **Flip:** Volume
-* **F-Key:** FX parameter: fine 
-* **Shift:** FX parameter: toggle / coarse – *switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry.* 
-
-	*There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you’re lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I’m saying ‘should’ because I haven’t found a plug in to test this with yet. If you found one that’s freeware, tell me.*
+*There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you’re lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I’m saying ‘should’ because I haven’t found a plug in to test this with yet. If you found one that’s freeware, tell me.*
 
 #### Faders
 
-##### Default / Pan Mode
+Mode 						| No Key (Default) 	| Shift 			| F-Key
+**All Modes, no flip**		| Volume			| Volume > 0dB		| Volume > -inf dB
+**Default (Pan) – *Flip***	| Pan  		 		| Pan > C 			| Stereo width
+**Chan - Flip**				| FX parameter\*	| FX parameter > max| FX parameter > min
+**Aux – *Flip*** 			| Send volume 		| Send volume > 0dB | Send volume > -inf dB
 
-* **Default:** Volume
-* **Flip:** Pan
-* **F-Key:** Volume > -inf dB
-* **Shift:** Volume > 0 dB
-
-##### Aux Mode
-
-* **Flip:** Send volume
-
-##### Chan Mode
-
-* **Flip:** FX Parameter – *if it seems you just can’t manage to turn a switch with the rotaries (unfortunately it happens, see above), you can flip and use the fader as a workaround. Sucks, I know.*
+*\* If it seems you just can’t manage to turn a switch with the rotaries (unfortunately it happens, see above), you can flip and use the fader as a workaround. Sucks, I know.*
 
 #### Sel Buttons – Tracks
 
-##### Default / Pan Mode
+Mode 						| No Key (Default) 	| Shift 			| F-Key
+**Default (Pan)**			| Select track		| Rec Arm\*			| Switch Phase\*\*
+**Chan** 					| Select this track's FX Chain | Rec Arm\*| Switch Phase\*\*
+**Aux**						| Select track 		| Remove Aux Send\*\*\*| Add Aux Send\*\*\*
 
-* **Default:** Select
-* **F-Key:** Switch Phase – *indicated by the light below the encoders*
-* **Shift:** Rec Arm – *indicated by the light below the encoders blinking*
-
-##### Aux Mode
-* **F-Key:** Add Aux Send to track
-* **Shift:** Remove Aux Send from track
-
-*Attention users of previous versions, this is new in this version – I find it to be more intuitive. Also: more room for custom actions*
-
-##### Chan Mode
-
-* **Default:** Select track for channel strip
+*\* Indicated by the light below the encoders glowing blinking*
+*\*\* Indicated by the light below the encoders glowing steady*
+*\*\*\* Attention users of previous versions: This is new – I think this is much more intuitive. Also, more room for custom actions!*
 
 #### Sel Button – Master
 
-##### Default / Pan Mode
+Mode 						| No Key (Default) or Shift 		| F-Key
+**Pan & Aux**				| Deselect / Select all Tracks 		| Select Master
+**Chan** 					| Select Master's FX chain 			| Select Master
 
-* **Default:** Deselect / Select all tracks
-* **F-Key:** Select master
+#### Solo Button – Tracks
 
-##### Chan Mode
+Mode 						| No Key (Default) or Shift 		| F-Key
+**All modes**				| Solo Track 				 		| Solo this track only (un-solo all others)
 
-* **Default:** Select master for channel strip
+#### Mute-Button – Tracks
 
-#### Solo Button
+Mode 						| No Key (Default) 	| Shift				| F-Key
+**All modes**				| Mute Track 		| Bypass all FX on this track\*| Mute this track only (un-mute all others)
 
-* **Default:** Solo track
-* **F-Key:** Solo only this track (un-solo all others)
-
-#### Mute-Button
-
-* **Default:** Mute track
-* **F-Key:** Mute only this track (un-mute all others)
-* **Shift:** Bypass all FX of this track – *trust me, you want this outside of Chan Mode*
+*\* Trust me, you want this outside of Chan Mode.*
 
 #### Clear Solo (Master)
 
-* **Default:** Un-solo all tracks
-* **F-Key:** Un-mute all tracks
+Mode 						| No Key (Default) or Shift 		| F-Key
+**All modes**				| Un-solo all tracks		 		| Un-mute all tracks
 
 #### Flip
 
-* Flip
+Flip between encoders and faders
 
 #### Chan
 
-* Enter / exit channel strip (Chan Mode)
+Enter / exit channel strip (Chan Mode)
 
 #### Pan
 
-* Enter default mode (Pan Mode)
+Enter default mode (Pan Mode)
 
 #### Aux-Block (1 – 6)
 
-##### Default / Pan Mode
+**Pan & Chan, no qualifiers:** Enter Aux Mode, select Aux 1 to 6
 
-* **Default / 1 – 6:** Enter Aux Mode 1 – 6 (adjust sends, etc.)
+**Chan Mode** 	| (no qualifier key)
+1 				| Bank shift FX parameters left (steps of 24)
+2 				| Bank shift FX parameters right (steps of 24)
+3 				| Bypass current FX
+4 				| Insert FX (also opens and closes FX Browser)
+5 				| Delete current FX
+6 				| Switch between recording FX automation (plugin parameters) and track automation (volume, pan, etc.) – blinks when FX automation is enabled
 
-##### Chan Mode
-
-* **Default / 1:** Bank shift FX parameters left (steps of 24)
-* **Default / 2:** Bank shift FX parameters right (steps of 24)
-* **Default / 3:** Bypass current FX
-* **Default / 4:** Insert FX (also opens and closes FX Browser)
-* **Default / 5:** Delete current FX
-* **Default / 6:** Switch between recording FX automation (plugin parameters) and track automation (volume, pan, etc.)
-
-##### Aux Mode
-
-* **Default / 1 – 6:** Enter Aux Mode 1 – 6
+Combinations with qualifier keys are assignable to custom actions
 
 #### Null Button (below F-Key)
 
-*Can be assigned to custom actions*
+Can be assigned to custom actions
 
 #### Jog Wheel / Scrub Button
 
-* **Scrub Button** activates Scrub, otherwise the Jogwheel just moves the cursor silently
-* **F-Key** enables faster adjustments
+**Scrub Button** activates Scrub, otherwise the Jogwheel just moves the cursor silently. **F-Key** enables faster adjustments.
 
 #### Joystick
 
@@ -212,28 +177,20 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 
 #### Bank Switches (below Scrub)
 
-##### Default (Pan Mode) and Aux Mode:
-
-* **Default:** Bank shift left / right (steps of 8)
-* **Shift:** Bank shift left / right (steps of 24)
-* **F-Key:** Move left edge of time selection left / right by 1 bar 
-
-##### Chan Mode
-
-* **Default:** Previous / next FX in chain
-* **Shift:** Bank shift left / right (steps of 24)
-* **F-Key:** Move current FX up / down in chain
+Mode 			| No Key (Default)					| Shift 							| F-Key
+**Pan & Aux**	| Bank shift left / right (steps of 8)|Bank shift left / right (steps of 24)|Move left edge of time selection left / right by 1 bar 
+**Chan** 		| Previous / next FX in chain		|Bank shift left / right (steps of 24)|Move current FX up / down in chain
 
 #### In/Out Buttons (to the right of Bank Switches)
 
-* **Default:** Time-select previous / next region (between the previous / next set of markers)
-* **Shift – In:** Toggle time-selection between whole project and current range (or nothing)
-* **Shift – Out:** Toggle loop time-selection
-* **F-Key:** Move right edge of time selection left / right by 1 bar 
+
+**All modes:**| No Key (Default)								| Shift					| F-Key
+In	| Time-select previous region (between the previous set of markers)|Toggle time-selection between whole project and current range (or nothing)|Move right edge of time selection left by 1 bar 
+Out	| Time-select next region (between the next set of markers)	| Toggle loop playback 	| Move right edge of time selection right by 1 bar 
 
 #### Transport Buttons
 
-*... do what you expect them to do :-)*
+... do what you expect them to do :-)
 
 [Back to Top](#contents)
 
