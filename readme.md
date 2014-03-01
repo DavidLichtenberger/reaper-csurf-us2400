@@ -84,6 +84,11 @@ That’s about it.
 
 #### Rotary Encoders
 
+First Header  | Second Header
+------------- | -------------
+Content Cell  | Content Cell
+Content Cell  | Content Cell
+
 Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
 **Default (Pan)**			| Pan 				| Pan > C 			| Stereo Width
