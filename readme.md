@@ -15,13 +15,17 @@
 	* [On-Screen-Help](#on-screen-help)
 * [Notes](#notes)
 
+---
+
 ## Disclaimer
 
 1.   This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers? 
 
 2.   Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok apart from some crashes – working on it, and thanks for testing, Nardberr and mim!)
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ## Needs
 
@@ -33,7 +37,9 @@
 
 *   The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ## Install
 
@@ -53,7 +59,9 @@
 
 *   You can throw away the ‘Source’ folder (it’s the c++ code) if you just want to run the extension. I would prefer it of course, if - after a short test drive - you would identify the flaws, put on your hacker hat, fork the extension and fix them.
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ## Uninstall
 
@@ -63,7 +71,9 @@
 
 That’s about it.
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ## Features
 
@@ -225,7 +235,9 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 
 *... do what you expect them to do :-)*
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ### Working with Aux Busses
 
@@ -234,6 +246,10 @@ The extension identifies any track, anywhere in your tracklist, that has ‘aux-
 It has to be three dashes to avoid confusion with tracknames ending in ‘aux’, though. For example, I don’t speak French, but I think some words end with ‘...aux’, so maybe there are tracknames like ‘plateaux 2’ or whatever ... well, you can use those and mark aux-busses with three dashes, no space.
 
 The US-2400 supports up to 6 aux busses, you can access the settings to each one entering aux mode 1 to 6 by pressing Aux buttons 1 to 6. In Aux Mode you can add and remove sends by pressing FKey/Shift and Select of the according track, and adjust the levels with the rotary encoder. Using flip in Aux Mode gives you Aux Levels on the faders and Aux Pans on the encoders!
+
+[Back to Top](#contents)
+
+---
 
 ### Channel Strip Mode
 
@@ -247,7 +263,9 @@ You can use Reapers option to switch to a basic UI (the UI button on the top lef
 
 Or you can use the **Scribble Strip Window** (see below).
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ### Custom Actions
 
@@ -270,7 +288,11 @@ Many of the buttons are connected with a trigger that just fires ReaScripts. The
 
 **All buttons except ‘Null’ have hardcoded actions, when no qualifier is pressed:** Aux 1 to 6 with no qualifier enters Aux Mode, transport does the obvious things, but you can override those by loading an action using the according signature (e.g. override Play with ‘(US-2400 - Play’)!
 
+---
+
 #### Action sets in the install package
+
+---
 
 ##### Automation
 
@@ -278,6 +300,8 @@ This set includes:
 
 * Remove envelopes from selected tracks (FKey - 6)
 * Show or hide envelopes (FKey - 5)
+
+---
 
 ##### General
 
@@ -288,6 +312,8 @@ This set includes:
 * Save (FKey - Play)
 * Open Render Dialog (FKey - Rec)
 
+---
+
 ##### Time / Zoom / Scroll
 
 This set includes:
@@ -297,6 +323,8 @@ This set includes:
 * Zoom track selection (Shift - Null) – *this seems to be buggy, working on it!*
 * Jump to next point of interest – end of loop, marker, etc. (NoKey - FFwd)
 * Jump to previous point of interest – beginning of loop, marker, etc. (NoKey - Rew) - *These last two actions Overrride the hardcoded FFwd / Rew. I find them to be much more useful, I use the scrub wheel to get around if I ever have to, mostly I’m just jumping from point to point. But you can of course put them somewhere else by renaming the file, or simply not install them.
+
+---
 
 ##### Track actions
 
@@ -312,11 +340,15 @@ This set includes:
 * Group selected tracks (Shift - 3)
 * Ungroup selected tracks (Shift - 6) – *For the SWS Grouping / Ungrouping actions to work you have to set / save the default flags once in every project: Shift + G (on your keyboard, not the US-2400) opens the Grouping Settings, tweak yours and hit Save.
 
+---
+
 ##### FX Favorites
 
 Edit these files to load your favorite plugins: Open the .py file in a text editor and insert the name of the plug in you want to load with that action in line 4 behind ‘fx_name = ’, in quotes (e.g. ‘fx_name = "ReaComp"’).
 
 Templates are included for actions triggered by every Aux Button with all qualifiers in Chan Mode (Chan - FKey/MKey/Shift - 1/2/3/4/5/6).
+
+---
 
 ##### Splits
 
@@ -335,7 +367,9 @@ Included flavors:
 
 **Important:** I didn’t have time yet to fully test drive those actions, so use with caution. I think you can’t use them on folders as of now. Nesting splits should work though (like using an LMH on the stereo signal of an MS split).
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ### M-Key or Meter Mode
 
@@ -347,7 +381,9 @@ Unfortunately this button doesn’t send a signal for releasing the button (unli
 
 The workaround is as follows: when you press the M-Key it stays activated for a short time (half a second or so). The M-Key and all buttons with assigned M actions flash rapidly during that time ... just FYI (I don’t think it makes a real difference in use).
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ### Scribble Strip Window
 
@@ -359,7 +395,9 @@ Images:
 [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View"), 
 [Channel Strip View (Chan Mode)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ### On-Screen-Help
 
@@ -372,7 +410,9 @@ Images:
 [Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), 
 [Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChanFKey.png "On Screen Help – Chan Mode, F-Key pressed")
 
-[Top](#contents)
+[Back to Top](#contents)
+
+---
 
 ## Notes
 
@@ -380,4 +420,4 @@ Images:
 
 *   When I have some time, I’ll update the ‘Issues’ section with known bugs and stuff. As of now it’s nothing major.
 
-[Top](#contents)
+[Back to Top](#contents)
