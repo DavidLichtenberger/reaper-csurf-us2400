@@ -343,9 +343,9 @@ I finally found out how to adress the Meter Mode of the US-2400, you can employ 
 
 But I admit that I find this a quite useless feature (15 lights for a VU signal, that’s more like a consumer tape deck ...) – I could use an additional qualifier key instead (more custom actions, yay!) so I made a version for that as well: If you use the .dll with ‘_m-key’ in the filename hitting Meter makes another command set available (like Shift or F-Key). 
 
-Unfortunately this button doesn’t send an signal for releasing the button (unlike every other button, weirdly), which poses a problem in using it as a qualifier: If you can’t check for a button-up you have now way of knowing if it’s still pressed when another button goes down (which is of course how qualifier keys work). 
+Unfortunately this button doesn’t send a signal for releasing the button (unlike every other button, weirdly), which poses a problem in using it as a qualifier: If you can’t check for a button-up you have no way of knowing if it’s still pressed when another button goes down (which is of course how qualifier keys work). 
 
-The workaround is as follows: when you press the M-Key it stays activated for a short time (half a second or so). The M-Key and all buttons with assigned M actions flash rapidly during that time. This should not make a real difference, just so you know.
+The workaround is as follows: when you press the M-Key it stays activated for a short time (half a second or so). The M-Key and all buttons with assigned M actions flash rapidly during that time ... just FYI (I don’t think it makes a real difference in use).
 
 [Top](#contents)
 
@@ -370,7 +370,7 @@ So I made an On-Screen Help Window that shows all button functions (hardcoced on
 Images:
 [Pan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpPan.png "On Screen Help – Pan Mode, no qualifier"), 
 [Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), 
-[Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, F-Key pressed")
+[Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChanFKey.png "On Screen Help – Chan Mode, F-Key pressed")
 
 [Top](#contents)
 
