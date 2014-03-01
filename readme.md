@@ -7,11 +7,11 @@
 * [Uninstall](#uninstall)
 * [Features](#features)
 	* [Hardcoded Functions](#hardcoded-functions)
-	* [Aux Mode](#aux-mode)
+	* [Working with Aux Busses](#working-with-aux-busses)
 	* [Channel Strip Mode](#channel-strip-mode)
 	* [Custom Actions](#custom-actions)
 	* [M-Key or Meter Mode](#m-key-or-meter-mode)
-	* [Scribble Strip Window](scrobble-strip-window)
+	* [Scribble Strip Window](#scribble-strip-window)
 	* [On-Screen-Help](#on-screen-help)
 * [Notes](#notes)
 
@@ -20,6 +20,8 @@
 1.   This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers? 
 
 2.   Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok apart from some crashes – working on it, and thanks for testing, Nardberr and mim!)
+
+[Top](#contents)
 
 ## Needs
 
@@ -30,6 +32,8 @@
 *   To run ReaScripts, Python has to be installed on your machine, read more about it [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info"). Choose and download the appropriate version for your machine [here](http://www.python.org/getit/ "Download Python")
 
 *   The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
+
+[Top](#contents)
 
 ## Install
 
@@ -49,6 +53,8 @@
 
 *   You can throw away the ‘Source’ folder (it’s the c++ code) if you just want to run the extension. I would prefer it of course, if - after a short test drive - you would identify the flaws, put on your hacker hat, fork the extension and fix them.
 
+[Top](#contents)
+
 ## Uninstall
 
 *   Delete reaper_csurf_us2400.dll
@@ -56,6 +62,8 @@
 *   If you want, remove the scripts/JS plug-ins and uninstall Python, but you don’t have to.
 
 That’s about it.
+
+[Top](#contents)
 
 ## Features
 
@@ -213,11 +221,13 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 * **Shift – Out:** Toggle loop time-selection
 * **F-Key:** Move right edge of time selection left / right by 1 bar 
 
-#### Transport
+#### Transport Buttons
 
-*Do what you expect them to do :-)*
+*... do what you expect them to do :-)*
 
-### Aux Mode
+[Top](#contents)
+
+### Working with Aux Busses
 
 The extension identifies any track, anywhere in your tracklist, that has ‘aux---1’ to ‘aux---6’ in its name as the respective Aux. You can call them anything – as long as ‘aux---X’ is in there somewhere it should work. Also, the search is not case sensitive so you can use ‘AUX’ or ‘Aux’ if you want. 
 
@@ -236,6 +246,8 @@ Due to the way many VST plugins are coded, the parameters will not appear in the
 You can use Reapers option to switch to a basic UI (the UI button on the top left of the FX window) – the parameter order in this view will match the one of the US-2400 (thanks, Nardberr!).
 
 Or you can use the **Scribble Strip Window** (see below).
+
+[Top](#contents)
 
 ### Custom Actions
 
@@ -323,6 +335,8 @@ Included flavors:
 
 **Important:** I didn’t have time yet to fully test drive those actions, so use with caution. I think you can’t use them on folders as of now. Nesting splits should work though (like using an LMH on the stereo signal of an MS split).
 
+[Top](#contents)
+
 ### M-Key or Meter Mode
 
 I finally found out how to adress the Meter Mode of the US-2400, you can employ it by installing the .dll with ‘_meter-mode’ in the filename and then hitting the Meter Key on the US-2400.
@@ -333,6 +347,8 @@ Unfortunately this button doesn’t send an signal for releasing the button (unl
 
 The workaround is as follows: when you press the M-Key it stays activated for a short time (half a second or so). The M-Key and all buttons with assigned M actions flash rapidly during that time. This should not make a real difference, just so you know.
 
+[Top](#contents)
+
 ### Scribble Strip Window
 
 Hitting **Shift and F-Key** together (in that order) opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
@@ -342,6 +358,8 @@ Still not better than if the US-2400 had a display, but it sure helps.
 Images:
 [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripTrack.png "Scribble Strip – Track View"), 
 [Channel Strip View (Chan Mode)](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-ScribbleStripChan.png "Scribble Strip – Channel Strip View")
+
+[Top](#contents)
 
 ### On-Screen-Help
 
@@ -354,8 +372,12 @@ Images:
 [Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), 
 [Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, F-Key pressed")
 
+[Top](#contents)
+
 ## Notes
 
 *   There is a thread about this extension [here](http://forum.cockos.com/showthread.php?t=132165 "Cockos Reaper Forums").
 
 *   When I have some time, I’ll update the ‘Issues’ section with known bugs and stuff. As of now it’s nothing major.
+
+[Top](#contents)
