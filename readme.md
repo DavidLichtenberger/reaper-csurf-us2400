@@ -20,9 +20,9 @@
 
 ## Disclaimer
 
-1.   This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better - any takers? 
+1.   This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better – any takers? 
 
-2.   Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok apart from some crashes – working on it, and thanks for testing, Nardberr and mim!)
+2.   Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok, thanks for testing, Nardberr and mim!)
 
 [Back to Top](#contents)
 
@@ -54,7 +54,9 @@
 
 * 	The Split (see [Action sets in the install package](#action-sets-in-the-install-package)) actions require some custom Jesusonic-Plugins (mainly for routing stuff), those are in the according folder (Custom Actions/Splits), they go here: `Documents and Settings\YourUsername\Application Data\Reaper\Effects`.
 
-*   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me! *I found a nice hack for this: hitting the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
+*   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me! 
+	
+	*I found a nice hack for this: hitting the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
 
 *   Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
 
@@ -66,7 +68,7 @@
 
 ## Uninstall
 
-*   Delete reaper_csurf_us2400.dll
+*   Delete `reaper_csurf_us2400.dll`.
 
 *   If you want, remove the ReaScripts and JS plug-ins, and uninstall Python, but you don’t have to.
 
@@ -83,6 +85,7 @@ That’s about it.
 #### Rotary Encoders
 
 Mode 						| No Key (Default) 	| Shift 			| F-Key
+---	| --- | --- | ---
 **Default (Pan)**			| Pan 				| Pan > C 			| Stereo Width
 **Chan** 					| FX parameter 		| FX-Parameter: fine| FX parameter: toggle / coarse\*
 **Pan & Chan – *Flip***		| Volume 			| Volume > 0dB 		| Volume > -inf dB
