@@ -88,9 +88,9 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
 **Default (Pan)**			| Pan 				| Pan > C 			| Stereo Width
 **Chan** 					| FX parameter 		| FX-Parameter: fine| FX parameter: toggle / coarse\*
-**Pan & Chan – *Flip***		| Volume 			| Volume > 0dB 		| Volume > -inf dB
+**Pan & Chan – _Flip_**		| Volume 			| Volume > 0dB 		| Volume > -inf dB
 **Aux**						| Send Volume 		| Send Volume > 0dB | Send Volume > -inf dB
-**Aux – *Flip*** 			| Send Pan (!) 		| Send Pan > C 		| Send Pan
+**Aux – _Flip_** 			| Send Pan (!) 		| Send Pan > C 		| Send Pan
 
 _\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry._
 
@@ -101,11 +101,11 @@ _\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5
 Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
 **All Modes, no flip**		| Volume			| Volume > 0dB		| Volume > -inf dB
-**Default (Pan) – *Flip***	| Pan  		 		| Pan > C 			| Stereo width
+**Default (Pan) – _Flip_**	| Pan  		 		| Pan > C 			| Stereo width
 **Chan - Flip**				| FX parameter\*	| FX parameter > max| FX parameter > min
-**Aux – *Flip*** 			| Send volume 		| Send volume > 0dB | Send volume > -inf dB
+**Aux – _Flip_** 			| Send volume 		| Send volume > 0dB | Send volume > -inf dB
 
-*\* If it seems you just can’t manage to turn a switch with the rotaries (unfortunately it happens, see above), you can flip and use the fader as a workaround. Sucks, I know.*
+_\* If it seems you just can’t manage to turn a switch with the rotaries (unfortunately it happens, see above), you can flip and use the fader as a workaround. Sucks, I know._
 
 #### Sel Buttons – Tracks
 
@@ -115,9 +115,9 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 **Chan** 					| Select this track's FX Chain | Rec Arm\*| Switch Phase\*\*
 **Aux**						| Select track 		| Remove Aux Send\*\*\*| Add Aux Send\*\*\*
 
-*\* Indicated by the light below the encoders glowing blinking*
-*\*\* Indicated by the light below the encoders glowing steady*
-*\*\*\* Attention users of previous versions: This is new – I think this is much more intuitive. Also, more room for custom actions!*
+_\* Indicated by the light below the encoders glowing blinking_
+_\*\* Indicated by the light below the encoders glowing steady_
+_\*\*\* Attention users of previous versions: This is new – I think this is much more intuitive. Also, more room for custom actions!_
 
 #### Sel Button – Master
 
@@ -138,7 +138,7 @@ Mode 						| No Key (Default) 	| Shift				| F-Key
 ---	| --- | --- | ---
 **All modes**				| Mute Track 		| Bypass all FX on this track\*| Mute this track only (un-mute all others)
 
-*\* Trust me, you want this outside of Chan Mode.*
+_\* Trust me, you want this outside of Chan Mode._
 
 #### Clear Solo (Master)
 
@@ -173,7 +173,7 @@ Enter default mode (Pan Mode)
 
 Combinations with qualifier keys are assignable to custom actions.
 
-*\* – blinks when FX automation is enabled*
+_\* – blinks when FX automation is enabled_
 
 #### Null Button (below F-Key)
 
@@ -212,13 +212,11 @@ Stop 			| Stop 				| Selected tracks' automation: Latch Mode\*
 Play 			| Play 				| Selected tracks' automation: Write Mode\*
 Rec 			| Rec 				| Selected tracks' automation: Write current value to whole time selection
 
-*\*The light above the according transport buttons blink to indicate mode(s) – if more than one light blinks that means different tracks have different modes enabled.*
-
 All hardcoded actions of the Transport section can be overridden by loading custom actions. 
 
 The default set in the installation package overrides the default Rew / Ffwd with 'Jump to next prev POI (marker, loop start/end, etc.)', because you can use the scrub wheel to get around. If you want default behaviour, simply don't install those two custom actions, or assign them to another button. (See [Custom Actions](#custom-actions))
 
-
+_\*The light above the according transport buttons blink to indicate mode(s) – if more than one light blinks that means different tracks have different modes enabled._
 
 [Back to Top](#contents)
 
