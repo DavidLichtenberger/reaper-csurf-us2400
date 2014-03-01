@@ -84,11 +84,6 @@ That’s about it.
 
 #### Rotary Encoders
 
-First Header  | Second Header
-------------- | -------------
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-
 Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
 **Default (Pan)**			| Pan 				| Pan > C 			| Stereo Width
@@ -104,6 +99,7 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 #### Faders
 
 Mode 						| No Key (Default) 	| Shift 			| F-Key
+---	| --- | --- | ---
 **All Modes, no flip**		| Volume			| Volume > 0dB		| Volume > -inf dB
 **Default (Pan) – *Flip***	| Pan  		 		| Pan > C 			| Stereo width
 **Chan - Flip**				| FX parameter\*	| FX parameter > max| FX parameter > min
@@ -114,6 +110,7 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 #### Sel Buttons – Tracks
 
 Mode 						| No Key (Default) 	| Shift 			| F-Key
+---	| --- | --- | ---
 **Default (Pan)**			| Select track		| Rec Arm\*			| Switch Phase\*\*
 **Chan** 					| Select this track's FX Chain | Rec Arm\*| Switch Phase\*\*
 **Aux**						| Select track 		| Remove Aux Send\*\*\*| Add Aux Send\*\*\*
@@ -125,17 +122,20 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 #### Sel Button – Master
 
 Mode 						| No Key (Default) or Shift 		| F-Key
+---	| --- | --- 
 **Pan & Aux**				| Deselect / Select all Tracks 		| Select Master
 **Chan** 					| Select Master's FX chain 			| Select Master
 
 #### Solo Button – Tracks
 
 Mode 						| No Key (Default) or Shift 		| F-Key
+---	| --- | --- 
 **All modes**				| Solo Track 				 		| Solo this track only (un-solo all others)
 
 #### Mute-Button – Tracks
 
 Mode 						| No Key (Default) 	| Shift				| F-Key
+---	| --- | --- | ---
 **All modes**				| Mute Track 		| Bypass all FX on this track\*| Mute this track only (un-mute all others)
 
 *\* Trust me, you want this outside of Chan Mode.*
@@ -143,6 +143,7 @@ Mode 						| No Key (Default) 	| Shift				| F-Key
 #### Clear Solo (Master)
 
 Mode 						| No Key (Default) or Shift 		| F-Key
+---	| --- | --- 
 **All modes**				| Un-solo all tracks		 		| Un-mute all tracks
 
 #### Flip
@@ -162,6 +163,7 @@ Enter default mode (Pan Mode)
 **Pan & Chan, no qualifiers:** Enter Aux Mode, select Aux 1 to 6
 
 **Chan Mode** 	| (no qualifier key)
+---	| --- 
 1 				| Bank shift FX parameters left (steps of 24)
 2 				| Bank shift FX parameters right (steps of 24)
 3 				| Bypass current FX
@@ -186,6 +188,7 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 #### Bank Switches (below Scrub)
 
 Mode 			| No Key (Default)					| Shift 							| F-Key
+---	| --- | --- | ---
 **Pan & Aux**	| Bank shift left / right (steps of 8)|Bank shift left / right (steps of 24)|Move left edge of time selection left / right by 1 bar 
 **Chan** 		| Previous / next FX in chain		|Bank shift left / right (steps of 24)|Move current FX up / down in chain
 
@@ -193,12 +196,14 @@ Mode 			| No Key (Default)					| Shift 							| F-Key
 
 
 **All modes:**| No Key (Default)								| Shift					| F-Key
+---	| --- | --- | ---
 In	| Time-select previous region (between the previous set of markers)|Toggle time-selection between whole project and current range (or nothing)|Move right edge of time selection left by 1 bar 
 Out	| Time-select next region (between the next set of markers)	| Toggle loop playback 	| Move right edge of time selection right by 1 bar 
 
 #### Transport Buttons
 
 **All modes:**	| No Key (Default) 	| Shift 
+---	| --- | --- 
 Rew 			| Rewind 			| Selected tracks' automation: Off / Trim\*
 FFwd 			| Fast forward		| Selected tracks' automation: Read Mode\*
 Stop 			| Stop 				| Selected tracks' automation: Latch Mode\*
