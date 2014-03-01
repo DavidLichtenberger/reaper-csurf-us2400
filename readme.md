@@ -119,7 +119,7 @@ _\* Indicated by the light below the encoders glowing blinking_
 
 _\*\* Indicated by the light below the encoders glowing steady_
 
-_\*\*\* Attention users of previous versions: This is new – I think this is much more intuitive. Also, more room for custom actions!_
+_\*\*\* Attention users of previous versions: This is new – I think this it’s more intuitive that way. Also, more room for custom actions!_
 
 #### Sel Button – Master
 
@@ -386,7 +386,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 
 There is a Keymap for the hardcoded functions which you can print out and stick on the Master section. 
 
-But to include the custom actions doesn’t really make sense if you’re using your own anyway. And even if you’re using the default sets, with the new M-Key there wouldn’t be room to put them all on the Keymap in a sensible fashion. So I made an On-Screen Help Window that shows all button functions (hardcoded ones as well as custom actions that were loaded). You can access it by hitting **F-Key and Shift** together and in that order (reversed order brings up the [Channel Strip](#channel-strip)).
+But to include the custom actions doesn’t really make sense if you’re using your own anyway. And even if you’re using the default sets, with the new M-Key there wouldn’t be room to put them all on the Keymap in a sensible fashion. So I made an On-Screen Help Window that shows all button functions (hardcoded ones as well as custom actions that were loaded). You can access it by hitting **F-Key and Shift** together and in that order (reversed order brings up the [Channel Strip](#channel-strip)). As long as it's open it simply follows your actions (like changing modes, hitting qualifiers) and shows you the according options.
 
 Images: [Keymap](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-400-Reaper-Keymap.gif "Keymap"), [Pan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpPan.png "On Screen Help – Pan Mode, no qualifier"), [Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), [Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChanFKey.png "On Screen Help – Chan Mode, F-Key pressed")
 
