@@ -56,7 +56,7 @@
 
 *   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me! 
 	
-	*I found a nice hack for this: hitting the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
+	*I found a nice hack for this: pushing the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
 
 *   Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
 
@@ -112,14 +112,16 @@ _\* If it seems you just can’t manage to turn a switch with the rotaries (unfo
 Mode 						| No Key (Default) 	| Shift 			| F-Key
 ---	| --- | --- | ---
 **Default (Pan)**			| Select track		| Rec Arm\*			| Switch Phase\*\*
-**Chan** 					| Select this track’s FX Chain | Rec Arm\*| Switch Phase\*\*
-**Aux**						| Select track 		| Remove Aux Send\*\*\*| Add Aux Send\*\*\*
+**Chan** 					| Select this track’s FX Chain | Rec Arm\* | Switch Phase\*\*
+**Aux**						| Select track 		| Remove Aux Send\*\*\* \*\*\*\* | Add Aux Send / Switch Post / Pre (Fader)\*\*\* \*\*\*\*
 
-_\* Indicated by the light below the encoders glowing blinking_
+_\* Indicated by the light below the encoders blinking_
 
 _\*\* Indicated by the light below the encoders glowing steady_
 
-_\*\*\* Attention users of previous versions: This is new – I think this it’s more intuitive that way. Also, more room for custom actions!_
+_\*\*\* Pushing F-Select on a track without Send adds a standard Post Aux Send to the track. Pushing the combination again switches the same Send to Pre, and then back to Post, and so on. Remove any existing Send (Pre or Post) with Shift-Select. In Aux mode the encoder diode glows steady for a Post Send and blinks for a Pre Send.
+
+_\*\*\*\* Attention users of previous versions: This is new – I think this it’s more intuitive that way. Also, more room for custom actions!_
 
 #### Sel Button – Master
 
@@ -350,17 +352,15 @@ Included flavors:
 * Add parallel processor (MKey – 6) – *Go wild with NY compression! The automatic volume compensation in the folder track makes sure you judge the sound and not the volume*
 * Unsplit first selected split track (MKey – Null) – *Removes a split and returns to the single track you had before. Any FX you inserted in the sub tracks will be lost!*
 
-**Important:** I didn’t have time yet to fully test drive those actions, so use with caution. I think you can’t use them on folders as of now. Nesting splits should work though (like using an LMH on the stereo signal of an MS split).
-
 [Back to Top](#contents)
 
 ---
 
 ### M-Key or Meter Mode
 
-I finally found out how to adress the Meter Mode of the US-2400, you can employ it by installing the .dll with `_meter-mode` in the filename and then hitting the Meter Key on the US-2400.
+I finally found out how to adress the Meter Mode of the US-2400, you can employ it by installing the .dll with `_meter-mode` in the filename and then pushing the Meter Key on the US-2400.
 
-But I admit that I find this a quite useless feature (15 lights for a VU signal, that’s more like a consumer tape deck ...) – I could use an additional qualifier key instead (more custom actions, yay!) so I made a version for that as well: If you use the .dll with `_m-key` in the filename hitting Meter makes another command set available (like Shift or F-Key). 
+But I admit that I find this a quite useless feature (15 lights for a VU signal, that’s more like a consumer tape deck ...) – I could use an additional qualifier key instead (more custom actions, yay!) so I made a version for that as well: If you use the .dll with `_m-key` in the filename pushing the Meter Button makes another command set available (like Shift or F-Key). 
 
 Unfortunately this button doesn’t send a signal for releasing the button (unlike every other button, weirdly), which poses a problem in using it as a qualifier: If you can’t check for a button-up you have no way of knowing if it’s still pressed when another button goes down (which is of course how qualifier keys work). 
 
@@ -372,7 +372,7 @@ The workaround is as follows: when you press the M-Key it stays activated for a 
 
 ### Scribble Strip Window
 
-Hitting **Shift and F-Key** together (in that order, reversed order brings up the [On-Screen-Help](#keymap-and-on-screen-help)) opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
+Pushing **Shift and F-Key** together (in that order, reversed order brings up the [On-Screen-Help](#keymap-and-on-screen-help)) opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
 
 Still not better than if the US-2400 had a display, but it sure helps.
 
@@ -386,7 +386,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 
 There is a Keymap for the hardcoded functions which you can print out and stick on the Master section. 
 
-But to include the custom actions doesn’t really make sense if you’re using your own anyway. And even if you’re using the default sets, with the new M-Key there wouldn’t be room to put them all on the Keymap in a sensible fashion. So I made an On-Screen Help Window that shows all button functions (hardcoded ones as well as custom actions that were loaded). You can access it by hitting **F-Key and Shift** together and in that order (reversed order brings up the [Channel Strip](#channel-strip)). As long as it's open it simply follows your actions (like changing modes, hitting qualifiers) and shows you the according options.
+But to include the custom actions doesn’t really make sense if you’re using your own anyway. And even if you’re using the default sets, with the new M-Key there wouldn’t be room to put them all on the Keymap in a sensible fashion. So I made an On-Screen Help Window that shows all button functions (hardcoded ones as well as custom actions that were loaded). You can access it by pushing **F-Key and Shift** together and in that order (reversed order brings up the [Channel Strip](#channel-strip)). As long as it's open it simply follows your actions (like changing modes, pushing qualifiers) and shows you the according options.
 
 Images: [Keymap](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-Keymap.gif "Keymap"), [Pan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpPan.png "On Screen Help – Pan Mode, no qualifier"), [Chan Mode – no qualifier](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChan.png "On Screen Help – Chan Mode, no qualifier"), [Chan Mode – F-Key pressed](https://raw2.github.com/DavidLichtenberger/reaper-csurf-us2400/master/Tascam-US-2400-Reaper-OnScreenHelpChanFKey.png "On Screen Help – Chan Mode, F-Key pressed")
 
