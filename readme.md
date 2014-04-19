@@ -46,9 +46,9 @@
 
 *   If you’ve never heard of GitHub – the ‘Download ZIP’-Button should be somewhere on the right, use it to download the files, extract them and proceed as follows:
 
-*   reaper_csurf_us2400.dll goes into `Programs\Reaper\Plugins`. Use the 64 bit version for Windows 7 and the like, and the 32 bit for XP. 
+*   reaper_csurf_us2400.dll goes into `Programs\Reaper\Plugins`. Wether you use the 32-bit or 64-bit versions of the dlls depends on your version of Reaper, not your operating system! So: 64-bit dlls for Reaper-64-bit (that concerns Win 7, mostly) and 32-bit dlls for Reaper-32-bit (this would be Win XP, mostly, but applies to all OS, if you run Reaper-32-bit on Win 7, for example!)
 
-	If you want to use the Meter Mode (encoder rings as VU Meters) choose the file that ends with `_metermode`, if you want to use the Meter-Button as an additional qualifier key (like Shift or F-Key) instead choose the file with `_mkey` in the name. Read more about it [M-Key or Meter Mode](#m-key-or-meter-mode)
+	If you want to use the Meter Mode (encoder rings as VU Meters) choose the file that ends with `_metermode`, if you want to use the Meter-Button as an additional qualifier key (like Shift or F-Key) instead, choose the file with `_mkey` in the name. Read more about it here: [M-Key or Meter Mode](#m-key-or-meter-mode)
 
 *   I recommend putting the ReaScript (.py) files for [Custom Actions](#custom-actions) in Reaper’s Scripts directory: `Documents and Settings\YourUsername\Application Data\Reaper\Scripts` but technically you can put them anywhere.
 
