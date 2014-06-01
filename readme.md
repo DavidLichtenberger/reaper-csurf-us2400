@@ -24,6 +24,9 @@
 
 2.   Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok, thanks for testing, Nardberr and mim!)
 
+_Update: It seems to work ok for pretty much everyone who tested it (32 or 64). See details in the [thread](http://forum.cockos.com/showthread.php?t=132165 "Cockos Reaper Forums")._
+
+
 [Back to Top](#contents)
 
 ---
@@ -37,6 +40,8 @@
 *   To run ReaScripts, Python has to be installed on your machine, read more about it [here](http://www.reaper.fm/sdk/reascript/reascript.php "Reaper: ReaScript info"). Choose and download the appropriate version for your machine [here](http://www.python.org/getit/ "Download Python")
 
 *   The US-2400 has to be in Native Mode, which AFAIK is a novelty of firmware 1.31, so you might have to update it. To activate Native Mode put the US-2400 to standby (so that the Power button ‘breathes’), then keep Master Sel + Chan pushed while turning it back on – if you have the right firmware and Native Mode is active Chan should blink three times. (To put it back in the MCU emulation mode do the same with Master Sel + Aux 5)
+
+*   There are known problems with EarSketch!
 
 [Back to Top](#contents)
 
@@ -94,7 +99,7 @@ Mode 						| No Key (Default) 	| Shift 			| F-Key
 
 _\* This switches between 0 and 1 (on and off) this works 90% of the time. For 5 way switches and the like you’ll have to flip and use faders, sorry._
 
-*There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you’re lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I’m saying ‘should’ because I haven’t found a plug in to test this with yet. If you found one that’s freeware, tell me.*
+*There are rumors about plug ins that report optimal parameter step sizes to Reaper. If you’re lucky enough to happen upon one of those, the standard step size should be automatically set to that value. If applicable, toggle should be automatically set, too. Shift should activate a coarser step size (10 times the default step size) in this case. I’m saying ‘should’ because I haven’t found a single plug in to test this with yet. If you found one that’s freeware, tell me.*
 
 #### Faders
 
