@@ -6,18 +6,17 @@
 */
 
 
-
 ////// PREFERENCES //////
 
 // Meter enabled
-#define METERMODE false // true // 
-#define DESCSTRING "Tascam US-2400 (M-Key Support)" // "Tascam US-2400 (with VU-Meters)" // 
+#define METERMODE true // false // 
+#define DESCSTRING "Tascam US-2400 (with VU-Meters)" // "Tascam US-2400 (M-Key Support)" // 
 
 // Meter: -inf = x dB
 #define MINUSINF -90.0
 
 // period in which M qualifier is active (in Run cycles)
-#define MDELAY 30
+#define MDELAY 50
 
 
 // Encoder resolution for volume, range: 0 > 16256
@@ -81,12 +80,23 @@
 
 #include "csurf.h"
 
-
 // for debug  
 char debug[64];
 
 class CSurf_US2400;
 static bool g_csurf_mcpmode = true; 
+
+
+inline bool dblEq(double a, double b, double prec) {
+if ( ((abs(a) - abs(b)) < prec) && ((abs(a) - abs(b)) > (0 - prec)) )
+  {
+    return true;
+  } else
+  {
+    return false;
+  }
+}
+
 
 // DISPLAY
 bool stp_repaint = false;
@@ -96,7 +106,7 @@ int stp_x = -1;
 int stp_y = -1;
 int stp_open = 0;
 
-WDL_String stp_strings[48];
+WDL_String stp_strings[49];
 int stp_colors[24];
 unsigned long stp_enc_touch = 0;
 unsigned long stp_enc_touch_prev = 0;
@@ -106,6 +116,7 @@ unsigned long stp_sel = 0;
 unsigned long stp_rec = 0;
 unsigned long stp_mute = 0;
 bool stp_chan = false;
+bool stp_flip = false;
 
 void Stp_Paint(HWND hwnd)
 {
@@ -122,8 +133,9 @@ void Stp_Paint(HWND hwnd)
   HFONT rfont = (HFONT)SelectObject(hdc, hfont);
   
   COLORREF bg_col = RGB(60, 60, 60);
+  COLORREF separator_col = RGB(90, 90, 90);
   
-  HBRUSH separator_bg = CreateSolidBrush(RGB(90, 90, 90));
+  HBRUSH separator_bg = CreateSolidBrush(separator_col);
   HBRUSH touch_bg = CreateSolidBrush(RGB(240, 120, 120));
 
   HPEN white_ln = CreatePen(PS_SOLID, 1, RGB(250, 250, 250));
@@ -150,6 +162,29 @@ void Stp_Paint(HWND hwnd)
       FillRect(hdc, &rect, separator_bg);
 
       x += box_width;
+
+      // draw info
+      SetBkColor(hdc, separator_col);
+      
+      // draw flip
+      if (stp_flip) {
+
+        rect.top = F2I(padding);
+        rect.bottom = F2I(single_height - padding);
+
+        SetTextColor(hdc, RGB(240, 60, 60));
+        DrawText(hdc, "F L I P", -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+      }
+
+      // draw fx name
+      if (stp_chan)
+      {
+        rect.top = F2I(single_height + touch_height + padding);
+        rect.bottom = F2I(win_height - padding);
+
+        SetTextColor(hdc, RGB(150, 150, 150));
+        DrawText(hdc, stp_strings[49].Get(), -1, &rect, DT_CENTER | DT_WORDBREAK | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS);
+      }
     }
 
     // draw and set background if applicable
@@ -588,7 +623,6 @@ class CSurf_US2400 : public IReaperControlSurface
   unsigned long cache_upd_meters;
   char cache_exec;
   bool master_sel;
-  bool insert_fx_hook;
 
   // general states
   int s_ch_offset; // bank up/down
@@ -607,6 +641,7 @@ class CSurf_US2400 : public IReaperControlSurface
   MediaTrack* chan_rpr_tk;
   char chan_ch;
   int chan_fx;
+  int chan_fx_count;
   int chan_par_offs;
   bool chan_fx_env_arm;
 
@@ -765,7 +800,7 @@ class CSurf_US2400 : public IReaperControlSurface
     {
       if (q_fkey)
       {
-        if (m_aux > 0) MyCSurf_AddAuxSend(rpr_tk, m_aux, 0);
+        if (m_aux > 0) MyCSurf_AddSwitchAuxSend(rpr_tk, m_aux);
         else MyCSurf_SwitchPhase(rpr_tk);
 
       } else if (q_shift)
@@ -1521,7 +1556,7 @@ class CSurf_US2400 : public IReaperControlSurface
       {
         par_val = "";
         par_name = "";
-      }
+      }   
 
       // transmit
 
@@ -1529,17 +1564,22 @@ class CSurf_US2400 : public IReaperControlSurface
       stp_colors[ch] = GetTrackColor(tk);
       stp_strings[ch + 24] = tk_name;
       stp_strings[ch] = tk_num_c;
+      stp_flip = m_flip;
 
       if (m_chan)
       {
         stp_chan = true;
         stp_strings[ch] = WDL_String(par_val);
-        
+
         if ( ( !m_flip && ((s_touch_fdr & (1 << ch)) == 0) ) || ( m_flip && (s_touch_enc[ch] == 0) ) )
         {
           stp_colors[ch] = 0;
           stp_strings[ch + 24] = par_name;
         }
+
+        TrackFX_GetFXName(chan_rpr_tk, chan_fx, buffer, 64);
+        stp_strings[49] = WDL_String(buffer);
+        stp_strings[49] = Utl_Alphanumeric(stp_strings[49]);
       }
 
       // keep only alphanumeric, replace everything else with space
@@ -2318,12 +2358,13 @@ class CSurf_US2400 : public IReaperControlSurface
 
   void Utl_CheckFXInsert()
   {
-    // this gets set to true by InsertFX so we know the dialog has been open
-    if (insert_fx_hook)
+    int real_fx_count = TrackFX_GetCount(chan_rpr_tk);
+    if (chan_fx_count != real_fx_count)
     {
-      // InsertFX auto increments chan_fx -> if dialog has been cancelled, this points to nothing
-      if (chan_fx >= TrackFX_GetCount(chan_rpr_tk)) chan_fx = TrackFX_GetCount(chan_rpr_tk) - 1;
-    
+     
+      chan_fx_count = real_fx_count;
+      chan_fx = chan_fx_count - 1;
+
       // update display and encoders / faders
       for (int ch = 0; ch < 24; ch++)
       {
@@ -2331,9 +2372,9 @@ class CSurf_US2400 : public IReaperControlSurface
         if (!m_flip) MySetSurface_UpdateEncoder(ch);
         else MySetSurface_UpdateFader(ch);
       }
-    }
 
-    insert_fx_hook = false;
+      MyCSurf_Chan_OpenFX(chan_fx);
+    }
   } // Utl_CheckFXInsert
 
 
@@ -2342,7 +2383,7 @@ class CSurf_US2400 : public IReaperControlSurface
     char* str_buf = in_str.Get();
     bool replace = false;
     // replace everything other than A-Z, a-z, 0-9 with a space
-    for (int i = 0; i < strlen(str_buf); i++)
+    for (int i = 0; i < (int)strlen(str_buf); i++)
     {
       replace = true;
       if (str_buf[i] == '\n') replace = false;
@@ -2360,18 +2401,17 @@ class CSurf_US2400 : public IReaperControlSurface
 
   MediaTrack* Utl_FindAux(int aux_id)
   {
-    MediaTrack* aux_tk;
-    bool aux_found = false;
+    MediaTrack* tk;
     
     for (int tk_id = 0; tk_id < CountTracks(0); tk_id++)
     {
-      MediaTrack* tk = GetTrack(0, tk_id);
+      tk = GetTrack(0, tk_id);
       const char* name = GetTrackState(tk, 0);
       
       // lowercase aux
       int c = 0;
       int chr_found = 0;
-      while ((name[c] != '\0') && (c < strlen(name)))
+      while ((name[c] != '\0') && (c < (int)strlen(name)))
       {
         if (chr_found == 0 && ((name[c] == 'A') || (name[c] == 'a'))) chr_found = 1;
         else if (chr_found == 1 && ((name[c] == 'U') || (name[c] == 'u'))) chr_found = 2;
@@ -2386,6 +2426,57 @@ class CSurf_US2400 : public IReaperControlSurface
     }
     
     return NULL;
+  }
+
+  WDL_String Utl_Chunk_InsertLine(WDL_String chunk, WDL_String line, WDL_String before)
+  {
+    char* pstr = chunk.Get();
+    char* ppos = strstr(pstr, before.Get());
+    
+    // found 'before'? insert
+    if (ppos != NULL)
+    {
+      chunk.Insert( line.Get(), ppos - pstr, strlen(line.Get()) );
+    }
+
+    return chunk;
+  }
+
+  WDL_String Utl_Chunk_RemoveLine(WDL_String chunk, WDL_String search)
+  {
+    char* pstr = chunk.Get();
+    char* ppos = strstr(pstr, search.Get());
+    
+    if (ppos != NULL)
+    {
+      // search beggining of line
+      char* pstart = ppos;
+      while ( (*pstart != '\n') && (pstart > pstr) )
+        pstart--;
+      
+      // search end of line
+      char* pend = ppos;
+      while ( (*pend != '\n') && (pend < pstr + strlen(pstr)) )
+        pend++;
+
+      chunk.DeleteSub(pstart - pstr, pend - pstart);
+    }
+
+    return chunk;
+  }
+
+  WDL_String Utl_Chunk_Replace(WDL_String chunk, WDL_String search, WDL_String replace)
+  {
+    char* pstr = chunk.Get();
+    char* ppos = strstr(pstr, search.Get());
+
+    if (ppos != NULL)
+    {
+      chunk.DeleteSub(ppos - pstr, strlen(search.Get()));
+      chunk.Insert( replace.Get(), ppos - pstr, strlen(replace.Get()) );
+    }
+
+    return chunk;
   }
 
 
@@ -2439,7 +2530,7 @@ public:
     cache_upd_enc = 0;
     cache_exec = 0;
     master_sel = false;
-    insert_fx_hook = false;
+
 
     // general states
     s_ch_offset = 0; // bank up/down
@@ -2798,43 +2889,50 @@ public:
 
   void MySetSurface_UpdateEncoder(int ch_id)
   {
-    MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
-    int para_amount;
-
-    double d_value;
-    unsigned char value;
-    bool dot = false; // for phase switch, rec arm
-
-    bool istrack = true;
-    bool exists = false;
-    bool isactive = true;
-
     // encoder exists?
-    if ( (ch_id >= 0) && (ch_id <= 23) ) exists = true;
-
-    // active encoder? 
-    if (!rpr_tk) 
-    { // no track
-      
-      isactive = false; 
-      istrack = false;
-    }
-
-    if ( (m_chan) && (!m_flip) )
-    { 
-      para_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
-      if (chan_par_offs + ch_id >= para_amount) isactive = false;
-      else isactive = true; // chan + !flip: is track doesn't matter
-
-    } else if (m_aux > 0) 
-    { // only aux #x: has send #x?
-      int send_id = Cnv_AuxIDToSendID(ch_id, m_aux);
-      if (send_id == -1) isactive = false;
-    }
-
-    // get values and update
-    if (exists)
+    if ( (ch_id >= 0) && (ch_id <= 23) )
     {
+
+      MediaTrack* rpr_tk = Cnv_ChannelIDToMediaTrack(ch_id);
+      int para_amount;
+
+      double d_value;
+      unsigned char value;
+      bool dot = false; // for phase switch, rec arm
+
+      bool istrack = true;
+      bool exists = false;
+      bool isactive = true;
+      bool ispre = false;
+
+      // active encoder? 
+      if (!rpr_tk) 
+      { // no track
+        
+        isactive = false; 
+        istrack = false;
+      }
+
+      if ( (m_chan) && (!m_flip) )
+      { 
+        para_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
+        if (chan_par_offs + ch_id >= para_amount) isactive = false;
+        else isactive = true; // chan + !flip: is track doesn't matter
+
+      } else if ((m_aux > 0) && (rpr_tk != NULL))
+      { // only aux #x: has send #x?
+        int send_id = Cnv_AuxIDToSendID(ch_id, m_aux);
+        isactive = false;
+        if (send_id != -1) 
+        {
+          isactive = true;
+          int* send_mode = (int*)GetSetTrackSendInfo(rpr_tk, 0, send_id, "I_SENDMODE", NULL);
+          if (*send_mode > 0) ispre = true;
+        }
+      }
+
+      // get values and update
+     
       if (!isactive)
       { // is not active encoder
 
@@ -2911,11 +3009,22 @@ public:
 
       if (istrack)
       {
-        // phase states
-        if ( (bool)GetMediaTrackInfo_Value(rpr_tk, "B_PHASE") ) dot = true;
+
+        // aux mode: active & pre/post
+        if (m_aux > 0)
+        {
+          if (isactive) dot = true;
+          if ((ispre) && (s_myblink)) dot = !dot;
+
+        // other modes: phase / rec arm
+        } else
+        {
+          // phase states
+          if ( (bool)GetMediaTrackInfo_Value(rpr_tk, "B_PHASE") ) dot = true;
           
-        // rec arms: blink
-        if ( ((bool)GetMediaTrackInfo_Value(rpr_tk, "I_RECARM")) && (s_myblink) ) dot = !dot;
+          // rec arms: blink
+          if ( ((bool)GetMediaTrackInfo_Value(rpr_tk, "I_RECARM")) && (s_myblink) ) dot = !dot;
+        }
 
         if (dot) value += 0x40; // set dot
       }
@@ -2928,7 +3037,6 @@ public:
         // set upd flag 
         cache_upd_enc = cache_upd_enc | (1 << ch_id);
       }    
-
     } // if exists
   } // MySetSurface_UpdateEncoder
 
@@ -2996,7 +3104,7 @@ public:
 
     // remove update flag
     cache_upd_meters = cache_upd_meters & (~(1 << ch_id));
-  }
+  } // MySetSurface_ExecuteMeterUpdate
 
 
   void MySetSurface_UpdateTrackElement(char ch_id)
@@ -3034,8 +3142,6 @@ public:
 
   void MySetSurface_ToggleFlip()
   {
-    Utl_CheckFXInsert();
-
     m_flip = !m_flip;
 
     CSurf_ResetAllCachedVolPanStates();
@@ -3089,8 +3195,6 @@ public:
 
   void MySetSurface_Chan_SetFxParamOffset(char dir)
   {
-    Utl_CheckFXInsert();
-
     chan_par_offs -= 24 * dir;
     if (chan_par_offs < 0) chan_par_offs = 0;
 
@@ -3191,7 +3295,7 @@ public:
 
     chan_rpr_tk = Cnv_ChannelIDToMediaTrack(chan_ch);
 
-    MyCSurf_Chan_OpenFX(chan_fx);
+    Utl_CheckFXInsert();
     
     // blink Track Select
     MySetSurface_UpdateButton(chan_ch * 4 + 1, true, true);
@@ -3474,11 +3578,12 @@ public:
     }
 
     CSurf_OnSoloChange(rpr_tk, solo);
-
+    
+    /*
     bool solo_surf = true;  
     if (solo == 0) solo_surf = false;
 
-    SetSurfaceSolo(rpr_tk, solo_surf);
+    SetSurfaceSolo(rpr_tk, solo_surf);*/
   } // MyCSurf_ToggleSolo
 
 
@@ -3524,112 +3629,72 @@ public:
   } // MyCSurf_SwitchPhase
 
 
-  // mode 0: post, 3: pre
-  void MyCSurf_AddAuxSend(MediaTrack* rpr_tk, int aux, int mode)
+  void MyCSurf_AddSwitchAuxSend(MediaTrack* rpr_tk, int aux)
   {
-    int tk_id = GetMediaTrackInfo_Value(rpr_tk, "IP_TRACKNUMBER") - 1;
+    int tk_id = (int)GetMediaTrackInfo_Value(rpr_tk, "IP_TRACKNUMBER") - 1;
     MediaTrack* aux_tk = Utl_FindAux(aux);
+   
+    char* chunk = GetSetObjectState(aux_tk, "");
+    WDL_String chunk_wdl = WDL_String(chunk);
 
-    if (aux_tk != NULL)
+    // search for existing sends
+    char search[90];
+    char insert[90];
+    int found_mode = -1;
+    for (int m = 0; m <= 3; m++)
     {
-      char newchunk[93000];
-      strcpy(newchunk, "<TRACK\n");
-
-      int tk_amount = CountTracks(0);
-      if (tk_amount > 1000) tk_amount = 1000;
-
-      char* getchunk = GetSetObjectState(aux_tk, "");
-
-      for (int tk = 0; tk < tk_amount; tk++)
-      {
-
-        char tk_id_post_str[13];
-        sprintf(tk_id_post_str, "AUXRECV %d 0", tk);
-        char tk_id_pre_str[13];
-        sprintf(tk_id_pre_str, "AUXRECV %d 3", tk);
-        
-        // (re-)insert post sends
-        if ((strstr(getchunk, tk_id_post_str) != 0) || ((tk == tk_id) && (mode == 0)))
-        {
-          char insert_str[84];
-          sprintf(insert_str, "AUXRECV %d 0 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
-          strcat(newchunk, insert_str);
-        }
-
-        // (re-)insert pre sends
-        if ((strstr(getchunk, tk_id_pre_str) != 0) || ((tk == tk_id) && (mode == 3)))
-        {
-          char insert_str[84];
-          sprintf(insert_str, "AUXRECV %d 3 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
-          strcat(newchunk, insert_str);
-        }
-
-      }
-
-      FreeHeapPtr(getchunk);
-
-      GetSetObjectState(aux_tk, newchunk);
-      TrackList_AdjustWindows(false);      
+      sprintf(search, "AUXRECV %d %d", tk_id, m);
+      if (strstr(chunk, search)) found_mode = m;
     }
-  } // MyCSurf_AddAuxSend
+
+    FreeHeapPtr(chunk);
+
+    if (found_mode == -1)
+    {
+      // new line for post send
+      sprintf(insert, "AUXRECV %d 0 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk_id);
+      chunk_wdl = Utl_Chunk_InsertLine(chunk_wdl, WDL_String(insert), WDL_String("MIDIOUT "));
+  
+    } else if (found_mode == 0)
+    {
+      // new line for post send
+      sprintf(search, "AUXRECV %d 0", tk_id);
+      sprintf(insert, "AUXRECV %d 3", tk_id);
+
+      chunk_wdl = Utl_Chunk_Replace(chunk_wdl, WDL_String(search), WDL_String(insert));
+    
+    } else
+    {
+      // new line for post send
+      sprintf(search, "AUXRECV %d %d", tk_id, found_mode);
+      sprintf(insert, "AUXRECV %d 0", tk_id);
+
+      chunk_wdl = Utl_Chunk_Replace(chunk_wdl, WDL_String(search), WDL_String(insert));     
+    } 
+
+    GetSetObjectState(aux_tk, chunk_wdl.Get());
+
+  } // MyCSurf_AddSwitchAuxSend
 
 
   void MyCSurf_RemoveAuxSend(MediaTrack* rpr_tk, int aux)
   {
     int tk_id = GetMediaTrackInfo_Value(rpr_tk, "IP_TRACKNUMBER") - 1;
     MediaTrack* aux_tk = Utl_FindAux(aux);
+   
+    char* chunk = GetSetObjectState(aux_tk, "");
+    WDL_String chunk_wdl = WDL_String(chunk);
+    FreeHeapPtr(chunk); 
 
-    if ((aux_tk != NULL) && (GetTrackNumSends(aux_tk, -1) > 0))
-    {
-      if (GetTrackNumSends(aux_tk, -1) == 1)
-      {
-        Utl_SaveSelection();
-        SetOnlyTrackSelected(aux_tk);
-        Main_OnCommand(CMD("_S&M_SENDS5"), 0);
-        Utl_RestoreSelection();
+    char search[90];
+    const char* pos;
+    
+    // search for post send
+    sprintf(search, "AUXRECV %d", tk_id);
 
-      } else
-      {
-        char newchunk[93000];
-        strcpy(newchunk, "<TRACK\n");
+    chunk_wdl = Utl_Chunk_RemoveLine(chunk_wdl, WDL_String(search));
 
-        int tk_amount = CountTracks(0);
-        if (tk_amount > 1000) tk_amount = 1000;
-
-        char* getchunk = GetSetObjectState(aux_tk, "");
-
-        
-        for (int tk = 0; tk < tk_amount; tk++)
-        {
-
-          char tk_id_post_str[13];
-          sprintf(tk_id_post_str, "AUXRECV %d 0", tk);
-          char tk_id_pre_str[13];
-          sprintf(tk_id_pre_str, "AUXRECV %d 3", tk);
-
-          // re-insert post sends
-          if ((strstr(getchunk, tk_id_post_str) != 0) && (tk != tk_id))
-          {
-            char insert_str[84];
-            sprintf(insert_str, "AUXRECV %d 0 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
-            strcat(newchunk, insert_str);
-          }
-
-          // re-insert pre sends
-          if ((strstr(getchunk, tk_id_pre_str) != 0) && (tk != tk_id))
-          {
-            char insert_str[84];
-            sprintf(insert_str, "AUXRECV %d 3 1.00000000000000 0.00000000000000 0 0 0 0 0 -1.00000000000000 0 -1 ''\n", tk);
-            strcat(newchunk, insert_str);
-          }          
-        }
-
-        FreeHeapPtr(getchunk);
-
-        GetSetObjectState(aux_tk, newchunk);
-        TrackList_AdjustWindows(false); 
-      }
-    }
+    GetSetObjectState(aux_tk, chunk_wdl.Get()); 
   } // MyCSurf_RemoveAuxSend
 
 
@@ -3734,8 +3799,6 @@ public:
 
   void MyCSurf_Chan_DeleteFX()
   {
-    Utl_CheckFXInsert();
-
     Undo_BeginBlock();
 
     // count fx
@@ -3767,9 +3830,6 @@ public:
 
   void MyCSurf_Chan_InsertFX()
   {
-    Utl_CheckFXInsert();
-
-    insert_fx_hook = true;
     // isolate track for action
     Utl_SaveSelection();
     SetOnlyTrackSelected(chan_rpr_tk);
@@ -3780,11 +3840,6 @@ public:
     Main_OnCommand(CMD_FXBROWSER, 0);
 
     Utl_RestoreSelection();
-
-    // focus coming fx, so interface will be up to date after inserting
-    int amount_fx = TrackFX_GetCount(chan_rpr_tk);
-    chan_fx++;
-    if (chan_fx > amount_fx) chan_fx = amount_fx;
 
     // bugfix: deselect master
     if (!master_sel) SetTrackSelected(Cnv_ChannelIDToMediaTrack(24), false); 
@@ -3839,8 +3894,6 @@ public:
 
   void MyCSurf_Chan_ToggleFXBypass()
   {
-    Utl_CheckFXInsert();
-
     bool bypass = (bool)TrackFX_GetEnabled(chan_rpr_tk, chan_fx);
     bypass = !bypass;
     TrackFX_SetEnabled(chan_rpr_tk, chan_fx, bypass);
@@ -3850,8 +3903,6 @@ public:
 
   void MyCSurf_Chan_SetFXParam(MediaTrack* rpr_tk, int fx_id, int para_id, double value)
   {
-    Utl_CheckFXInsert();
-
     char ch_id = Cnv_MediaTrackToChannelID(rpr_tk);
 
     TrackFX_SetParam(rpr_tk, fx_id, para_id, value);
@@ -3965,9 +4016,10 @@ public:
 
   void MyCSurf_MoveTimeSel(signed char start_dir, signed char end_dir, bool markers)
   {
-    // markers: true = move to next marker, false = move 1 bar
+    // markers: true = move to next marker/region, false = move 1 bar
     // start_dir: move start of time sel by dir
-    // end_dir move end of time sel by dir
+    // end_dir: move end of time sel by dir
+
 
     // do nothing if sel all is on
     if (!s_loop_all)
@@ -3979,29 +4031,156 @@ public:
       int start_num, start_denom, end_num, end_denom;
 
       // get time selection
-      GetSet_LoopTimeRange(false, true, &start_time, &end_time, false); // ??
+      GetSet_LoopTimeRange(false, true, &start_time, &end_time, false);
 
       if (markers)
       {
-        // go through all markers
+
+        // max 100 markers / regions (couldn't get vectors to work)
+        double* starts = new double[100];
+        double* ends = new double[100];
+
+        double curr_region_end = 9999999999.0;
+        double last_pos = 0.0;
+        bool inside_region;
+        int idx = 0;
+        int sel = 0;
+
+        double sel_approx = 9999999999.0;
+
+        double pos, region_end, start_diff, end_diff;
+        bool is_region;
         int x = 0;
-        bool stop = false;
-        double prev_marker = 0.0;
-        double marker;
-        while ( (x = EnumProjectMarkers(x, NULL, &marker, NULL, NULL, NULL)) && !stop )
+        while ( (x = EnumProjectMarkers(x, &is_region, &pos, &region_end, NULL, NULL)) && (idx <= 100) )
         {
-          if ( ((start_dir < 0) && (marker >= start_time))
-            || ((end_dir > 0) && (marker > end_time)) )
+
+          // did we leave a previously established region?
+          if (pos > curr_region_end) 
           {
-            start_time = prev_marker;
-            end_time = marker;  
-            stop = true;
+            // count region end as marker
+            pos = curr_region_end;
+            x--;
+
+            // reset region flags
+            inside_region = false;
+            curr_region_end = 9999999999.0;
           }
-          prev_marker = marker;
+          
+          // add this range [last -> current marker (or region start/end)] to list
+          if (
+            (dblEq(pos, last_pos, 0.001) == false) &&
+            (idx <= 100) && 
+            ( 
+              (idx == 0) || 
+              (dblEq(last_pos, starts[idx-1], 0.001) == false) ||
+              (dblEq(pos, ends[idx-1], 0.001) == false)
+            ) )
+          {
+            starts[idx] = last_pos;
+            ends[idx] = pos;
+
+            // range fits current time selection?
+            start_diff = abs(abs(starts[idx]) - abs(start_time));
+            end_diff = abs(abs(ends[idx]) - abs(end_time));
+            if (start_diff + end_diff < sel_approx)
+            {
+              sel_approx = start_diff + end_diff;
+              sel = idx;
+
+              // exact match? then select next or previous range depending on start_dir
+              if (sel_approx < 0.002)
+              {
+                sel += start_dir;
+              }
+            }
+
+            idx++;
+          }
+
+          // add region to list
+          if (is_region) 
+          {
+            inside_region = true;
+            curr_region_end = region_end;
+            
+            starts[idx] = pos;
+            ends[idx] = region_end;
+
+            // range fits current time selection? 
+            start_diff = abs(abs(starts[idx]) - abs(start_time));
+            end_diff = abs(abs(ends[idx]) - abs(end_time));
+            if (start_diff + end_diff < sel_approx)
+            {
+              sel_approx = start_diff + end_diff;
+              sel = idx;
+
+              // exact match? then select next or previous range depending on start_dir
+              if (sel_approx < 0.002)
+              {
+                sel += start_dir;
+              }
+            }
+
+            idx++;
+                      
+          } 
+
+          last_pos = pos;
+
         }
-        
-        // set time selection
-        if (stop) GetSet_LoopTimeRange(true, true, &start_time, &end_time, false);
+
+        // end reached, but still inside a region? do one last goround
+        if ( (inside_region) && (idx <= 100) )
+        {
+          pos = curr_region_end;
+          if ( 
+            (dblEq(pos, last_pos, 0.001) == false) &&
+            ( 
+              (dblEq(last_pos, starts[idx-1], 0.001) == false) ||
+              (dblEq(pos, ends[idx-1], 0.001) == false)
+            ) )
+          {
+            starts[idx] = last_pos;
+            ends[idx] = pos;
+
+            // range fits current time selection?
+            start_diff = abs(abs(starts[idx]) - abs(start_time));
+            end_diff = abs(abs(ends[idx]) - abs(end_time));
+            if (start_diff + end_diff < sel_approx)
+            {
+              sel_approx = start_diff + end_diff;
+              sel = idx;
+
+              // exact match? then select next or previous range depending on start_dir
+              if (sel_approx < 0.002)
+              {
+                sel += start_dir;
+              }
+            }
+
+            idx++;
+          }
+        }
+
+        // clamp selection to boundaries of list, wrap around
+        if (sel >= idx)
+        {
+          sel = 0;
+        }
+
+        if (sel < 0)
+        {
+          sel = idx - 1;
+        }
+ 
+        // set new time selection
+        start_time = starts[sel];
+        end_time = ends[sel];
+        GetSet_LoopTimeRange(true, true, &start_time, &end_time, false);
+
+        // clean up arrays
+        delete [] starts;
+        delete [] ends;
 
       } else
       {
@@ -4215,11 +4394,9 @@ public:
         hlp_qkey = 0;
         Hlp_Update();
 
-        for (char b = 0; b < 6; b++)
-        {
-          MySetSurface_UpdateButton(0x65 + b, false, false); // aux
-          if (b < 5) MySetSurface_UpdateButton(0x75 + b, false, false); // transport
-        }
+        //reset buttons
+        MySetSurface_UpdateAuxButtons(); // aux
+        MySetSurface_UpdateAutoLEDs(); // transport
         MySetSurface_UpdateButton(0x6e, false, false); // null
         MySetSurface_UpdateButton(0x6b, false, false); // meter
       }
@@ -4285,6 +4462,11 @@ public:
       }
     }
 
+    // check fx count if chan mode
+    if (m_chan)
+    {
+      Utl_CheckFXInsert();
+    }
 
     // init
     if (!s_initdone) 
