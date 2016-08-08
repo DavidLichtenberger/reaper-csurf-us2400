@@ -79,6 +79,7 @@
 #define CMD_SEL2LASTTOUCH 40914
 
 #include "csurf.h"
+#include <map>
 
 // for debug  
 char debug[64];
@@ -88,7 +89,7 @@ static bool g_csurf_mcpmode = true;
 
 
 inline bool dblEq(double a, double b, double prec) {
-if ( ((abs(a) - abs(b)) < prec) && ((abs(a) - abs(b)) > (0 - prec)) )
+if ( ((fabs(a) - fabs(b)) < prec) && ((fabs(a) - fabs(b)) > (0 - prec)) )
   {
     return true;
   } else
@@ -623,6 +624,9 @@ class CSurf_US2400 : public IReaperControlSurface
   unsigned long cache_upd_meters;
   char cache_exec;
   bool master_sel;
+
+  // button states
+  std::map<char, bool[2]> button_states;
 
   // general states
   int s_ch_offset; // bank up/down
@@ -1505,7 +1509,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
         // track name
         GetSetMediaTrackInfo_String(tk, "P_NAME", buffer, false);
-        buffer[64] = '\0';
+        buffer[63] = '\0';
         tk_name = WDL_String(buffer);
       
         // track mute, selected, rec arm
@@ -1535,21 +1539,21 @@ class CSurf_US2400 : public IReaperControlSurface
       }
 
 
-      fx_amount = TrackFX_GetNumParams(chan_rpr_tk, chan_fx);
+      fx_amount = TrackFX_GetNumParams(tk, chan_fx);
       if (ch + chan_par_offs < fx_amount)
       {
         // fx param value
-        TrackFX_GetFormattedParamValue(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);
+        TrackFX_GetFormattedParamValue(tk, chan_fx, ch + chan_par_offs, buffer, 64);
         if (strlen(buffer) == 0)
         {
           double min, max;
-          double par = TrackFX_GetParam(chan_rpr_tk, chan_fx, ch + chan_par_offs, &min, &max);
+          double par = TrackFX_GetParam(tk, chan_fx, ch + chan_par_offs, &min, &max);
           sprintf(buffer, "%.4f", par);
         }
         par_val = WDL_String(buffer);
 
         // fx param name
-        TrackFX_GetParamName(chan_rpr_tk, chan_fx, ch + chan_par_offs, buffer, 64);
+        TrackFX_GetParamName(tk, chan_fx, ch + chan_par_offs, buffer, 64);
         par_name = WDL_String(buffer);
 
       } else
@@ -2322,7 +2326,7 @@ class CSurf_US2400 : public IReaperControlSurface
         else if (strstr(name, "- Rec")) key = 11;
         else
         {
-          char index_string[3];
+          char index_string[4];
           for (int s = 0; s < 6; s++)
           {
              sprintf(index_string, "- %d", s+1);
@@ -2666,10 +2670,11 @@ public:
   bool MySetSurface_Exit()
   {
     Stp_SaveCoords();
-
+	
     CSurf_ResetAllCachedVolPanStates();
-
-    MySetSurface_ExitChanMode();
+	
+	if (m_chan) MySetSurface_ExitChanMode();
+	
 
     for (char ch_id = 0; ch_id <= 24; ch_id++)
     {
@@ -2696,10 +2701,19 @@ public:
 
   void MySetSurface_UpdateButton(unsigned char btn_id, bool btn_state, bool blink)
   {
-    unsigned char btn_cmd = 0x7f; // on
-    if (blink) btn_cmd = 0x01; // blink
-    if (!btn_state) btn_cmd = 0x00; // off
-    MIDIOut(0xb1, btn_id, btn_cmd);
+	//button cache
+	if ((button_states[btn_id][0] == btn_state) && (button_states[btn_id][1] == blink)) {
+		return;
+	}
+	else {
+		button_states[btn_id][0] = btn_state; 
+		button_states[btn_id][1] = blink;
+		unsigned char btn_cmd = 0x7f; // on
+		if (blink) btn_cmd = 0x01; // blink
+		if (!btn_state) btn_cmd = 0x00; // off
+		MIDIOut(0xb1, btn_id, btn_cmd);
+	}
+
   } // MySetSurface_UpdateButton
 
 
@@ -4042,7 +4056,7 @@ public:
 
         double curr_region_end = 9999999999.0;
         double last_pos = 0.0;
-        bool inside_region;
+        bool inside_region = false;
         int idx = 0;
         int sel = 0;
 
@@ -4080,8 +4094,8 @@ public:
             ends[idx] = pos;
 
             // range fits current time selection?
-            start_diff = abs(abs(starts[idx]) - abs(start_time));
-            end_diff = abs(abs(ends[idx]) - abs(end_time));
+            start_diff = fabs(fabs(starts[idx]) - fabs(start_time));
+            end_diff = fabs(fabs(ends[idx]) - fabs(end_time));
             if (start_diff + end_diff < sel_approx)
             {
               sel_approx = start_diff + end_diff;
@@ -4107,8 +4121,8 @@ public:
             ends[idx] = region_end;
 
             // range fits current time selection? 
-            start_diff = abs(abs(starts[idx]) - abs(start_time));
-            end_diff = abs(abs(ends[idx]) - abs(end_time));
+            start_diff = fabs(fabs(starts[idx]) - fabs(start_time));
+            end_diff = fabs(fabs(ends[idx]) - fabs(end_time));
             if (start_diff + end_diff < sel_approx)
             {
               sel_approx = start_diff + end_diff;
@@ -4144,8 +4158,8 @@ public:
             ends[idx] = pos;
 
             // range fits current time selection?
-            start_diff = abs(abs(starts[idx]) - abs(start_time));
-            end_diff = abs(abs(ends[idx]) - abs(end_time));
+            start_diff = fabs(fabs(starts[idx]) - fabs(start_time));
+            end_diff = fabs(fabs(ends[idx]) - fabs(end_time));
             if (start_diff + end_diff < sel_approx)
             {
               sel_approx = start_diff + end_diff;
