@@ -2177,7 +2177,7 @@ class CSurf_US2400 : public IReaperControlSurface
 
   char Cnv_WidthToEncoder(double value) 
   {
-    double new_val = abs(value) * 7.0 + 1;
+    double new_val = fabs(value) * 7.0 + 1;
     if (new_val < 1.0) new_val = 1.0;
     else if ( new_val > 15.0) new_val = 15.0;
 
