@@ -1,5 +1,7 @@
 # Tascam US-2400 Control Surface Extension for Cockos Reaper
 
+## I haven't gotten around to maintaining this at all in the last couple of years. There is a newer, much better maintained fork over at [https://github.com/Ruxton/reaper-csurf-us2400](https://github.com/Ruxton/reaper-csurf-us2400)!
+
 ###### Contents
 * [Disclaimer](#disclaimer)
 * [Needs](#needs)
@@ -20,7 +22,7 @@
 
 ## Disclaimer
 
-1.   This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better – any takers? 
+1.   This is a working beta. Install and use at your own risk. It’s more or less the second half-serious thing I did in C++, I’m sure it could be done much better – any takers?
 
 2.   Although there is a version for 64 bit Windows now, I have no way to test it, so you’ll have to do that yourself. (As of now it works ok, thanks for testing, Nardberr and mim!)
 
@@ -59,8 +61,8 @@ _Update: It seems to work ok for pretty much everyone who tested it (32 or 64). 
 
 * 	The Split (see [Action sets in the install package](#action-sets-in-the-install-package)) actions require some custom Jesusonic-Plugins (mainly for routing stuff), those are in the according folder (Custom Actions/Splits), they go here: `Documents and Settings\YourUsername\Application Data\Reaper\Effects`.
 
-*   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me! 
-	
+*   Now comes the tedious part: You have to load all scripts into the Action List – I don’t know if there’s a way to bulk import them – if you do: good for you, and: tell me!
+
 	*I found a nice hack for this: pushing the Load button in the Action List several times opens a stack of Load File dialogs, all on top of each other. That makes it a bit quicker (at least for me).*
 
 *   Only after you have done this, open Reaper Preferences / Control Surfaces and select ‘Tascam US-2400’ with its first MIDI-Port (it shows five on my PC) – otherwise the actions will only become available after you restart Reaper.
@@ -131,14 +133,14 @@ _\*\*\*\* Attention users of previous versions: This is new – I think this it�
 #### Sel Button – Master
 
 Mode 						| No Key (Default) or Shift 		| F-Key
----	| --- | --- 
+---	| --- | ---
 **Pan & Aux**				| Deselect / Select all Tracks 		| Select Master
 **Chan** 					| Select Master’s FX chain 			| Select Master
 
 #### Solo Button – Tracks
 
 Mode 						| No Key (Default) or Shift 		| F-Key
----	| --- | --- 
+---	| --- | ---
 **All modes**				| Solo Track 				 		| Solo this track only (un-solo all others)
 
 #### Mute-Button – Tracks
@@ -152,7 +154,7 @@ _\* Trust me, you want this outside of Chan Mode._
 #### Clear Solo (Master)
 
 Mode 						| No Key (Default) or Shift 		| F-Key
----	| --- | --- 
+---	| --- | ---
 **All modes**				| Un-solo all tracks		 		| Un-mute all tracks
 
 #### Flip
@@ -172,7 +174,7 @@ Enter default mode (Pan Mode)
 **Pan & Chan, no qualifiers:** Enter Aux Mode, select Aux 1 to 6
 
 **Chan Mode** 	| (no qualifier key)
----	| --- 
+---	| ---
 1 				| Bank shift FX parameters left (steps of 24)
 2 				| Bank shift FX parameters right (steps of 24)
 3 				| Bypass current FX
@@ -200,7 +202,7 @@ Signals from the Joystick are not assigned to any Control Surface functions. Ins
 
 Mode 			| No Key (Default)					| Shift 							| F-Key
 ---	| --- | --- | ---
-**Pan & Aux**	| Bank shift left / right (steps of 8)|Bank shift left / right (steps of 24)|Move left edge of time selection left / right by 1 bar 
+**Pan & Aux**	| Bank shift left / right (steps of 8)|Bank shift left / right (steps of 24)|Move left edge of time selection left / right by 1 bar
 **Chan** 		| Previous / next FX in chain		|Bank shift left / right (steps of 24)|Move current FX up / down in chain
 
 #### In/Out Buttons (to the right of Bank Switches)
@@ -208,20 +210,20 @@ Mode 			| No Key (Default)					| Shift 							| F-Key
 
 **All modes:**| No Key (Default)								| Shift					| F-Key
 ---	| --- | --- | ---
-In	| Time-select previous region (between the previous set of markers)|Toggle time-selection between whole project and current range (or nothing)|Move right edge of time selection left by 1 bar 
-Out	| Time-select next region (between the next set of markers)	| Toggle loop playback 	| Move right edge of time selection right by 1 bar 
+In	| Time-select previous region (between the previous set of markers)|Toggle time-selection between whole project and current range (or nothing)|Move right edge of time selection left by 1 bar
+Out	| Time-select next region (between the next set of markers)	| Toggle loop playback 	| Move right edge of time selection right by 1 bar
 
 #### Transport Buttons
 
-**All modes:**	| No Key (Default) 	| Shift 
----	| --- | --- 
+**All modes:**	| No Key (Default) 	| Shift
+---	| --- | ---
 Rew 			| Rewind 			| Selected tracks’ automation: Off / Trim\*
 FFwd 			| Fast forward		| Selected tracks’ automation: Read Mode\*
 Stop 			| Stop 				| Selected tracks’ automation: Latch Mode\*
 Play 			| Play 				| Selected tracks’ automation: Write Mode\*
 Rec 			| Rec 				| Selected tracks’ automation: Write current value to whole time selection
 
-All hardcoded actions of the Transport section can be overridden by loading custom actions. 
+All hardcoded actions of the Transport section can be overridden by loading custom actions.
 
 The default set in the installation package overrides the default Rew / Ffwd with ‘Jump to next prev POI (marker, loop start/end, etc.)’, because you can use the scrub wheel to get around. If you want default behaviour, simply don’t install those two custom actions, or assign them to another button. (See [Custom Actions](#custom-actions))
 
@@ -233,7 +235,7 @@ _\*The light above the according transport buttons blink to indicate mode(s) –
 
 ### Working with Aux Busses
 
-The extension identifies any track, anywhere in your tracklist, that has ‘aux---1’ to ‘aux---6’ in its name as the respective Aux. You can call them anything – as long as ‘aux---X’ is in there somewhere it should work. Also, the search is not case sensitive so you can use ‘AUX’ or ‘Aux’ if you want. 
+The extension identifies any track, anywhere in your tracklist, that has ‘aux---1’ to ‘aux---6’ in its name as the respective Aux. You can call them anything – as long as ‘aux---X’ is in there somewhere it should work. Also, the search is not case sensitive so you can use ‘AUX’ or ‘Aux’ if you want.
 
 It has to be three dashes to avoid confusion with tracknames ending in ‘aux’, though. For example, I don’t speak French, but I think some words end with ‘...aux’, so maybe there are tracknames like ‘plateaux 2’ or whatever ... well, you can use those and mark aux-busses with three dashes, no space.
 
@@ -245,7 +247,7 @@ The US-2400 supports up to 6 aux busses, you can access the settings to each one
 
 ### Channel Strip Mode
 
-When entering Channel Strip Mode (Chan Mode for short) you can select the FX chain of one track using the Track Select buttons – your existing track selection stays active, a blinking Track Select button indicates the selected FX chain. 
+When entering Channel Strip Mode (Chan Mode for short) you can select the FX chain of one track using the Track Select buttons – your existing track selection stays active, a blinking Track Select button indicates the selected FX chain.
 
 In this mode the rotary encoders are used for FX parameters. The function auf Aux and Bank buttons changes, so you can step through your parameters and through you FX chain, insert new FX, delete FX and move them up and down the chain using the Aux buttons in this mode (details under [Hardcoded Functions](#hardcoded-functions)).
 
@@ -365,9 +367,9 @@ Included flavors:
 
 I finally found out how to adress the Meter Mode of the US-2400, you can employ it by installing the .dll with `_meter-mode` in the filename and then pushing the Meter Key on the US-2400.
 
-But I admit that I find this a quite useless feature (15 lights for a VU signal, that’s more like a consumer tape deck ...) – I could use an additional qualifier key instead (more custom actions, yay!) so I made a version for that as well: If you use the .dll with `_m-key` in the filename pushing the Meter Button makes another command set available (like Shift or F-Key). 
+But I admit that I find this a quite useless feature (15 lights for a VU signal, that’s more like a consumer tape deck ...) – I could use an additional qualifier key instead (more custom actions, yay!) so I made a version for that as well: If you use the .dll with `_m-key` in the filename pushing the Meter Button makes another command set available (like Shift or F-Key).
 
-Unfortunately this button doesn’t send a signal for releasing the button (unlike every other button, weirdly), which poses a problem in using it as a qualifier: If you can’t check for a button-up you have no way of knowing if it’s still pressed when another button goes down (which is of course how qualifier keys work). 
+Unfortunately this button doesn’t send a signal for releasing the button (unlike every other button, weirdly), which poses a problem in using it as a qualifier: If you can’t check for a button-up you have no way of knowing if it’s still pressed when another button goes down (which is of course how qualifier keys work).
 
 The workaround is as follows: when you press the M-Key it stays activated for a short time (half a second or so). The M-Key and all buttons with assigned M actions flash rapidly during that time ... just FYI (I don’t think it makes a real difference in use).
 
@@ -377,7 +379,7 @@ The workaround is as follows: when you press the M-Key it stays activated for a 
 
 ### Scribble Strip Window
 
-Pushing **Shift and F-Key** together (in that order, reversed order brings up the [On-Screen-Help](#keymap-and-on-screen-help)) opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values. 
+Pushing **Shift and F-Key** together (in that order, reversed order brings up the [On-Screen-Help](#keymap-and-on-screen-help)) opens a resizable **Scribble Strip Window**, showing track names / FX parameter names dynamically correlated with the corresponding fader / encoder row (column?) – it even indicates touch states, selected / rec armed tracks and parameter values.
 
 Still not better than if the US-2400 had a display, but it sure helps.
 
@@ -389,7 +391,7 @@ Images: [Track View (Pan and Aux Modes)](https://raw2.github.com/DavidLichtenber
 
 ### Keymap and On-Screen-Help
 
-There is a Keymap for the hardcoded functions which you can print out and stick on the Master section. 
+There is a Keymap for the hardcoded functions which you can print out and stick on the Master section.
 
 But to include the custom actions doesn’t really make sense if you’re using your own anyway. And even if you’re using the default sets, with the new M-Key there wouldn’t be room to put them all on the Keymap in a sensible fashion. So I made an On-Screen Help Window that shows all button functions (hardcoded ones as well as custom actions that were loaded). You can access it by pushing **F-Key and Shift** together and in that order (reversed order brings up the [Channel Strip](#channel-strip)). As long as it's open it simply follows your actions (like changing modes, pushing qualifiers) and shows you the according options.
 
